@@ -13,30 +13,20 @@ PATH = "C:\\PM\\lab\\fastapi\\demoAPI\\"
 class MosaData(BaseModel):
     path:str
     ID:list[str]
-    x1:int
-    y1:int
-    x2:int
-    y2:int
+    location_set:list[list[int]]
     style:int = 1
     mosasize:int = 30
-    # def __init__(self,path,ID,x1,y1,x2,y2,style,mosasize):
-    #     self.path = path
-    #     self.ID = ID
-    #     self.x1 = x1
-    #     self.y1 = y1
-    #     self.x2 = x2
-    #     self.y2 = y2
-    #     self.style = style
-    #     self.mosasize = mosasize
-
+##对有敏感字的区域进行全区域打码
 #对单张图片处理
-def mosa(name:str,x1:int,y1:int,x2:int,y2:int,style:int = 1,mosasize:int = 30):
+def mosa(name:str,location_set:list[list[int]],style:int = 1,mosasize:int = 30):
     lena = cv2.imread(name,cv2.IMREAD_COLOR)
 
+    location_set[0]
     row, colume,color=lena.shape
     mask=np.zeros((row,colume,color),dtype=np.uint8)
-    mask[x1:x2,y1:y2]=1
-
+    for e in location_set:
+        # mask[e[0]:e[2],e[1]:e[3]]=1   #传入参数为 x1 y1 x2 y2
+        mask[e[0]:e[0]+int(1.1*e[3]),e[1]-int(0.3*e[2]):e[1]+e[2]] = 1 # 传入参数top,left,width,height
    
     
     if style==1:#雪花屏
@@ -49,7 +39,7 @@ def mosa(name:str,x1:int,y1:int,x2:int,y2:int,style:int = 1,mosasize:int = 30):
         encryptFace=mask
     if style==4:#变模糊
         temp_img = cv2.resize(lena,dsize=(10,10))
-        temp_img = cv2.resize(temp_img,dsize=(row,colume))
+        temp_img = cv2.resize(temp_img,dsize=(colume,row))
         encryptFace = cv2.bitwise_and(temp_img,mask*255)
     if style==5:#马赛克
         temp_img=lena[::mosasize,::mosasize]
@@ -74,10 +64,6 @@ def mosa(name:str,x1:int,y1:int,x2:int,y2:int,style:int = 1,mosasize:int = 30):
 def mul_mosaic(mosadata:MosaData):
     path= PATH +mosadata.path
     ID=mosadata.ID
-    x1=mosadata.x1
-    y1=mosadata.y1
-    x2=mosadata.x2
-    y2=mosadata.y2
     style=mosadata.style
     mosasize=mosadata.mosasize
 
@@ -88,7 +74,7 @@ def mul_mosaic(mosadata:MosaData):
     i = 0
     for name in ID:
         i+=1
-        out_pic=mosa(inpath+'\\'+name,x1,y1,x2,y2,style,mosasize)
+        out_pic=mosa(inpath+'\\'+name,mosadata.location_set,style,mosasize)
         # if not os.path.exists(outpath+'\\'+name):
         #     with open(name, 'w') as fp:
         #         None
@@ -102,16 +88,25 @@ def mul_mosaic(mosadata:MosaData):
 # name = r"input_123\1.jpg"
 # name = "1.jpg"
 
-# mosadata = MosaData(path = "123",
+mosadata = MosaData(path = "123",
 # ID = ["1.jpg","2.jpg","3.jpg"],
-# x1=100,#(x1,y1)(x2,y2)
-# y1=100,
-# x2=200,
-# y2=200,
-# style = 5,
-# mosasize=30)
+ID = ["4.png"],
+location_set = [[10,70,13,17],[42,53,14,18]],#2
+# location_set = [[70,10,83,27],[53,42,67,60]],
+# location_set = [[10,70,27,83],[42,53,60,67]],#1
+style = 4,
+mosasize=30)
 
-# mul_mosaic(mosadata)
-
+mul_mosaic(mosadata)
+# [[10,70,27,83],[42,53,60,67]]
+# {
+#   "path": "123",
+#   "ID": [
+#     "4.png"
+#   ],
+#   "location_set": [[10,70,27,83],[42,53,60,67]],
+#   "style": 5,
+#   "mosasize": 30
+# }
 
 # mosa(name,x1,y1,x2,y2,style,30)
