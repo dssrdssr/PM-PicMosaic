@@ -159,7 +159,7 @@ async def delete_user(uname:str,db:Session=Depends(get_db),current_user: models.
         
 @app.post("/opencv/",tags=["图片处理"],summary="调用opencv打码处理批量图片")
 async def mosaic_for_multpic(mosadata:mosaic.MosaData):
-    num = await mosaic.mul_mosaic(mosadata = mosadata)
+    num = mosaic.mul_mosaic(mosadata = mosadata)
     return {"outfolder": mosaic.PATH +mosadata.path+'\\output',"sucess":num}
 
 @app.post("/oauth/upload/{uname}/",tags=["文件管理"],summary="用户上传")
