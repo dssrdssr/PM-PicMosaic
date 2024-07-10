@@ -13,7 +13,7 @@ from fastapi.openapi.docs import (
     get_swagger_ui_oauth2_redirect_html,
 )
 import fastapi_cdn_host
-from . import crud, models, schemas,main_async
+from . import crud, models, schemas,main_async,mosaic
 import pathlib #处理文件路径
 from .database import SessionLocal, engine
 import base64
@@ -156,6 +156,11 @@ async def delete_user(uname:str,db:Session=Depends(get_db),current_user: models.
             return crud.drop_user(db=db,uname=uname)
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
+        
+@app.post("/opencv/",tags=["图片处理"],summary="调用opencv打码处理批量图片")
+async def mosaic_for_multpic(mosadata:mosaic.MosaData):
+    num = mosaic.mul_mosaic(mosadata = mosadata)
+    return {"outfolder": mosaic.PATH +mosadata.path+'\\output',"sucess":num}
 
 @app.post("/oauth/upload/{uname}/",tags=["文件管理"],summary="用户上传")
 async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
