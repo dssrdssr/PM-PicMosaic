@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from pydantic import BaseModel
-PATH = "C:\\PM\\lab\\fastapi\\demoAPI\\"
+PATH = "C:\\PM\\lab\\fastapi\\demoAPI\\userdata\\"
 
 #使用说明：需要替换PATH为存储路径，路径下为以用户ID分类的文件夹
 #需求如下
@@ -20,7 +20,7 @@ class MosaData(BaseModel):
 #对单张图片处理
 def mosa(name:str,location_set:list[list[int]],style:int = 1,mosasize:int = 30):
     lena = cv2.imread(name,cv2.IMREAD_COLOR)
-    if lena:
+    if lena is not None:
         location_set[0]
         row, colume,color=lena.shape
         mask=np.zeros((row,colume,color),dtype=np.uint8)
@@ -44,9 +44,6 @@ def mosa(name:str,location_set:list[list[int]],style:int = 1,mosasize:int = 30):
         if style==5:#马赛克
             temp_img=lena[::mosasize,::mosasize]
             temp_img = cv2.resize(temp_img,dsize=(colume,row),interpolation=0)#最近邻差值
-            # print(mask.shape)
-            # print(row," ",colume)
-            # print(temp_img.shape)
             encryptFace = cv2.bitwise_and(temp_img,mask*255)
 
                
@@ -85,6 +82,7 @@ def mul_mosaic(mosadata:MosaData):
 
 
 #测试用例
+
 # name = r"C:\PM\lab\fastapi\demoAPI\input_123\1.jpg"
 # name = r"input_123\1.jpg"
 # name = "1.jpg"
@@ -99,14 +97,17 @@ style = 4,
 mosasize=30)
 
 mul_mosaic(mosadata)
-# [[10,70,27,83],[42,53,60,67]]
 # {
 #   "path": "123",
 #   "ID": [
-#     "4.png"
+#     "1.jpg","2.jpg","3.jpg","4.png","1234.png"
 #   ],
-#   "location_set": [[10,70,27,83],[42,53,60,67]],
-#   "style": 5,
+#   "location_set": [
+#     [
+#       10,10,50,50
+#     ]
+#   ],
+#   "style": 1,
 #   "mosasize": 30
 # }
 
