@@ -142,10 +142,12 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="The ID has already been registered")
-    path1=pathlib.Path('userdata/'+user.username+'/input')
-    path1.mkdir()
-    path2=pathlib.Path('userdata/'+user.username+'/output')
-    path2.mkdir()
+    path1='userdata/'+user.username+'/input'
+    if not os.path.exists(path1):
+        os.makedirs(path1)
+    path2='userdata/'+user.username+'/output'
+    if not os.path.exists(path2):
+        os.makedirs(path2)
     return crud.create_user(db=db, user=user)
 
 
