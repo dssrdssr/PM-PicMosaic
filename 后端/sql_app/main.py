@@ -299,7 +299,7 @@ async def download_file(db:Session=Depends(get_db),current_user: models.User = D
     if db_file:
         i = 0
         while i<len(db_file):
-            filename=list[i]
+            filename=db_file[i]
             list1.append(pathlib.Path('userdata/'+current_user.username+'/input/'+filename))
             pathtemp=pathlib.Path('userdata/'+current_user.username+'/output/'+filename)
             if not pathtemp.exists():
