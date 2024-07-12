@@ -1,3 +1,4 @@
+import os
 import pathlib
 from typing import List
 from fastapi import applications
@@ -24,7 +25,37 @@ app = FastAPI(docs_url=None,redoc_url=None,title="PM")
 
 fastapi_cdn_host.patch_docs(app, favicon_url='/static/hospital.svg')
 
-def crop_image(image_path, x, y, width, height):
+def crop_image(image_path, x1, y1, x2, y2):
+    # 打开图片
+    img = Image.open(image_path)
+    # 裁剪图片
+    cropped_img = img.crop((x1, y1,x2, y2))
+    # 显示裁剪后的图片（可选）
+    # cropped_img.show()
+    if cropped_img.mode == 'RGBA':
+        cropped_image = cropped_img.convert('RGB')
+    # 保存裁剪后的图片，然后将新的路径传递给图像识别和敏感词识别函数
+        cropped_image.save(f"cropped_image_{image_path}.jpg")
+    elif cropped_img.mode == 'RGB':
+        cropped_img.save(f"cropped_image_{image_path}.jpg")
+    with open(f"cropped_image_{image_path}.jpg", "rb") as f:
+        image_data = f.read()
+        base64_string = base64.b64encode(image_data).decode('utf-8')
+    if os.path.exists(f"cropped_image_{image_path}.jpg"):
+        # 删除文件
+        os.remove(f"cropped_image_{image_path}.jpg")
+    print(base64_string)
+    return base64_string
+
+def dict_crop(result_dict,x1, y1):
+    for all_line_position in result_dict['all_line_position']:
+        for one_line_all_char_position in all_line_position['one_line_all_char_position']:
+            if one_line_all_char_position['characters']!=[]and one_line_all_char_position['result_location']!=[]:
+                for result_location in one_line_all_char_position['result_location']:
+                    result_location['location']['top']=result_location['location']['top']+y1
+                    result_location['location']['left'] = result_location['location']['left'] + x1
+    return result_dict
+# crop_image('ocr1.png',10,10,200,200)
     # 打开图片
     img = Image.open(image_path)
     # 裁剪图片
@@ -64,6 +95,10 @@ def filetoimageurl(image_path:str):
         base64_string = base64.b64encode(image_data).decode('utf-8')
         url = "data:image/jpeg;base64," + base64_string
         return url
+    
+def path_to_base64_cropping(image_path,x1,y1,x2,y2):
+    base64_string=crop_image(image_path, x1, y1, x2, y2)
+    return base64_string
 
 def get_db():
     db = SessionLocal()
@@ -107,6 +142,10 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="The ID has already been registered")
+    path1=pathlib.Path('userdata/'+user.username+'/input')
+    path1.mkdir()
+    path2=pathlib.Path('userdata/'+user.username+'/output')
+    path2.mkdir()
     return crud.create_user(db=db, user=user)
 
 
@@ -162,71 +201,119 @@ async def mosaic_for_multpic(mosadata:mosaic.MosaData,current_user: models.User 
     num = mosaic.mul_mosaic(mosadata = mosadata)
     return {"outfolder": mosaic.PATH +mosadata.path+'\\output',"sucess":num}
 
-@app.post("/oauth/upload/{uname}/",tags=["文件管理"],summary="用户上传")
+@app.post("/oauth/upload/{username}/",tags=["文件管理"],summary="用户上传")
 async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     flag=0
     list1=[]
-    path = pathlib.Path('userdata/'+current_user.uname , "input")
+    path = pathlib.Path('userdata/'+current_user.username+'/input')
     if not path.exists():
         path.mkdir()
     for file in files:
         picname=file.filename
-        db_pic = crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
+        db_pic = crud.get_user_pic(db=db,username=current_user.username,picname=picname)
         if db_pic:
             flag=1
             list1.append(file.filename)
+            res = await file.read()#读取文件内容
+            with open(path.joinpath(file.filename), "wb") as f:#按文件名写入文件
+                f.write(res)
         else:
             res = await file.read()#读取文件内容
             with open(path.joinpath(file.filename), "wb") as f:#按文件名写入文件
                 f.write(res)
             
-            pic1=models.Pic(picname=file.filename,owner_id=current_user.uname)
+            pic1=models.Pic(picname=file.filename,owner_id=current_user.username)
             crud.create_user_pic(db=db, pic=pic1)
 
     if flag==1:
         detail=""
         for i in list1:
             detail=detail+i+" "
-        return {"message": "fail"}
+        return {"message": detail+" 被覆盖"}
     else:  
         return {"message": "success"}
 
-@app.get('/oauth/download/{uname}/',tags=["文件管理"],summary="文件下载")
+@app.get('/oauth/download/origin/{username}/',tags=["文件管理"],summary="原始文件下载")
 async def download_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    path=pathlib.Path('userdata/'+current_user.uname,"output")#文件保存的根目录
-    db_file=crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)#查找文件记录
+    path=pathlib.Path('userdata/'+current_user.username+'/input')#文件保存的根目录
+    if not path.exists():
+        raise HTTPException(status_code=401, detail="No file to download")
+    db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)#查找文件记录
     if db_file:
         #按文件保存路径找到并发送文件
         return FileResponse(path=path.joinpath(db_file.picname),filename=db_file.picname)
+    raise HTTPException(status_code=401, detail="No file to download")
+    
+@app.get('/oauth/download/{username}/',tags=["文件管理"],summary="打码文件下载")
+async def download_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    path=pathlib.Path('userdata/'+current_user.username+'/output')#文件保存的根目录
+    if not path.exists():
+        raise HTTPException(status_code=401, detail="No file to download")
+    db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)#查找文件记录
+    if db_file:
+        #按文件保存路径找到并发送文件
+        return FileResponse(path=path.joinpath(db_file.picname),filename=db_file.picname)
+    raise HTTPException(status_code=401, detail="No file to download")
+
+@app.get('/oauth/showall/{username}/',tags=["文件管理"],summary="显示所有图片")
+async def download_file(db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    path1=pathlib.Path('userdata/'+current_user.username+'/input')#文件保存的根目录
+    path2=pathlib.Path('userdata/'+current_user.username+'/output')#文件保存的根目录
+    if not path1.exists():
+        raise HTTPException(status_code=401, detail="No file to download")
+    if not path2.exists():
+        raise HTTPException(status_code=401, detail="No file to download")
+    list1=[]
+    db_file=crud.show_pics(db=db,user=current_user)#查找文件记录
+    if db_file:
+        i = 0
+        while i<len(db_file):
+            filename=list[i]
+            list1.append(pathlib.Path('userdata/'+current_user.username+'/input/'+filename))
+            pathtemp=pathlib.Path('userdata/'+current_user.username+'/output/'+filename)
+            if not pathtemp.exists():
+                list1.append(pathlib.Path('static/1.png'))
+            else:
+                list1.append(pathlib.Path('userdata/'+current_user.username+'/output/'+filename))
+            i=i+1
+        return list1
+    raise HTTPException(status_code=401, detail="No file to download")
 
 
-
-@app.get("/oauth/show/{uname}/pics/{picname}", response_model=schemas.Pic,tags=["文件管理"],summary="文件查询")
+@app.get("/oauth/show/{username}/pics/{picname}", response_model=schemas.Pic,tags=["文件管理"],summary="文件查询")
 def read_pic(picname: str,db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    db_pic = crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
+    db_pic = crud.get_user_pic(db=db,username=current_user.username,picname=picname)
     if db_pic is None:
         raise HTTPException(status_code=404, detail="Pic not found")
     return db_pic
 
-@app.delete('/oauth/delete/{uname}/pics/{picname}',tags=["文件管理"],summary="删除文件")
+@app.delete('/oauth/delete/{username}/pics/{picname}',tags=["文件管理"],summary="删除文件")
 async def delete_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    path=pathlib.Path('userdata/'+current_user.uname)
-    db_file=crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
+    path1=pathlib.Path('userdata/'+current_user.username+'/input')
+    if not path1.exists():
+        raise HTTPException(status_code=500, detail="Failed to delete this file")
+    path2=pathlib.Path('userdata/'+current_user.username+'/output')
+    if not path2.exists():
+        raise HTTPException(status_code=500, detail="Failed to delete this file")
+    db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)
     if not db_file:
         raise HTTPException(status_code=400, detail="No this file")
     else:
-        path_input=path.joinpath("input",db_file.picname)#路径从目录移动到目录下的文件
-        path_output=path.joinpath("output",db_file.picname)
-        print(path)
-        if path.exists():
+        path1=path1.joinpath(db_file.picname)#路径从目录移动到目录下的文件
+        if path1.exists():
             try:
-                path_input.unlink()#删除文件
-                path_output.unlink()
+                path1.unlink()#删除文件
+            except:
+                raise HTTPException(status_code=500, detail="Failed to delete this file")
+        path2=path2.joinpath(db_file.picname)#路径从目录移动到目录下的文件
+        if path2.exists():
+            try:
+                path2.unlink()#删除文件
             except:
                 raise HTTPException(status_code=500, detail="Failed to delete this file")
         '''
         path.unlink()#可能需要修改文件夹权限才能删除文件
-        linux 系统可以用代码控制,Windows系统需要打开资源管理器手动修改
+        linux 系统可以用代码控制，Windows系统需要打开资源管理器手动修改
         '''
     return crud.drop_file(db=db,pic=db_file)
 
@@ -238,7 +325,7 @@ async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),
         word_list=[]
     if name=="":
         word_list=[]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     base64=filetobase64(file)
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -251,7 +338,7 @@ async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),cur
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_async(image_url,word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -260,26 +347,26 @@ async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),cur
 
 
 @app.post("/image/base64/words/baidu",tags=["信息识别"],summary="敏感词库信息识别3")
-async def image_word_base64_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64_baidu(x1,y1,x2,y2,picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
     if name=="":
         word_list=[]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
-    base64=filetobase64(file)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
+    base64=path_to_base64_cropping(file,x1,y1,x2,y2)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
+    result_dict=dict_crop(result_dict,x1,y1)
     return {"len_words_result": result_dict['len_words_result'],
             "all_line_position":result_dict['all_line_position'],
             "all_char_location":result_dict['all_char_location'],}
-
 
 @app.post("/image/url/words/baidu",tags=["信息识别"],summary="敏感词库信息识别4")
 async def image_word_url_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -290,7 +377,7 @@ async def image_word_url_baidu(picname: str,name:str="",db:Session=Depends(get_d
 @app.post("/image/base64/word/free",tags=["信息识别"],summary="敏感词信息识别1")
 async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     base64=filetobase64(file)
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -301,7 +388,7 @@ async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),
 @app.post("/image/url/word/free",tags=["信息识别"],summary="敏感词信息识别2")
 async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_async(image_url,word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -310,11 +397,13 @@ async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),cur
 
 
 @app.post("/image/base64/word/baidu",tags=["信息识别"],summary="敏感词信息识别3")
-async def image_word_base64_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64_baidu(x1,x2,y1,y2,picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
-    base64=filetobase64(file)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
+    base64=path_to_base64_cropping(file)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
+    result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
+    result_dict=dict_crop(result_dict,x1,y1)
     return {"len_words_result": result_dict['len_words_result'],
             "all_line_position":result_dict['all_line_position'],
             "all_char_location":result_dict['all_char_location'],}
@@ -323,7 +412,7 @@ async def image_word_base64_baidu(picname: str,name:str="",db:Session=Depends(ge
 @app.post("/image/url/word/baidu",tags=["信息识别"],summary="敏感词信息识别4")
 async def image_word_url_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
-    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
     return {"len_words_result": result_dict['len_words_result'],
