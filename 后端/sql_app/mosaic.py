@@ -1,9 +1,10 @@
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
+import pathlib
 import os
 from pydantic import BaseModel
-PATH = "C:\\PM\\lab\\fastapi\\demoAPI\\userdata\\"
+PATH = pathlib.Path('userdata')
 
 #使用说明：需要替换PATH为存储路径，路径下为以用户ID分类的文件夹
 #需求如下
@@ -60,23 +61,23 @@ def mosa(name:str,location_set:list[list[int]],style:int = 1,mosasize:int = 30):
 
 #从input批量处理输出到output
 def mul_mosaic(mosadata:MosaData):
-    path= PATH +mosadata.path
+    path= PATH.joinpath(mosadata.path)
     ID=mosadata.ID
     style=mosadata.style
     mosasize=mosadata.mosasize
 
-    outpath = path + '\\' + "output"
-    inpath = path + '\\' + "input"
+    outpath = path.joinpath("output")
+    inpath = path.joinpath("input")
     if not os.path.exists(outpath):
         os.makedirs(outpath)	# 创建文件夹
     i = 0
     for name in ID:
         i+=1
-        out_pic=mosa(inpath+'\\'+name,mosadata.location_set,style,mosasize)
+        out_pic=mosa(inpath.joinpath(name),mosadata.location_set,style,mosasize)
         # if not os.path.exists(outpath+'\\'+name):
         #     with open(name, 'w') as fp:
         #         None
-        cv2.imwrite(outpath+'\\'+name,out_pic)
+        cv2.imwrite(outpath.joinpath(name),out_pic)
     return i
    
 
