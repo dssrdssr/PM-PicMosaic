@@ -158,7 +158,7 @@ async def delete_user(username:str,db:Session=Depends(get_db),current_user: mode
         raise HTTPException(status_code=401, detail=" Unauthorized")
         
 @app.post("/opencv/",tags=["图片处理"],summary="调用opencv打码处理批量图片")
-async def mosaic_for_multpic(mosadata:mosaic.MosaData):
+async def mosaic_for_multpic(mosadata:mosaic.MosaData,current_user: models.User = Depends(get_current_active_user)):
     num = mosaic.mul_mosaic(mosadata = mosadata)
     return {"outfolder": mosaic.PATH +mosadata.path+'\\output',"sucess":num}
 
