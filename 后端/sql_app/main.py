@@ -99,12 +99,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     fpwd=form_data.password
     if not fpwd == dbuser.password:
         raise HTTPException(status_code=400, detail="Incorrect password")
-    return {"access_token": dbuser.uname, "token_type": "bearer"}
+    return {"access_token": dbuser.username, "token_type": "bearer"}
 
 
 @app.post("/oauth/register", response_model=schemas.User,tags=["用户管理"],summary="注册用户")
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
-    db_user = crud.get_user(db, uname=user.uname)
+    db_user = crud.get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="The ID has already been registered")
     return crud.create_user(db=db, user=user)
@@ -121,14 +121,14 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),cu
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
 
-@app.put("/oauth/change/{uname}", response_model=schemas.User,tags=["用户管理"],summary="修改密码")
+@app.put("/oauth/change/{username}", response_model=schemas.User,tags=["用户管理"],summary="修改密码")
 def update_users(newpassword:str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    newuser=models.User(uname=current_user.uname,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
+    newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
     users = crud.modify_user(db, newuser)
     return users
 
 
-@app.put("/oauth/update/{uname}", response_model=schemas.User,tags=["用户管理"],summary="更新用户")
+@app.put("/oauth/update/{username}", response_model=schemas.User,tags=["用户管理"],summary="更新用户")
 def update_users(newuser:schemas.User, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority=='1':
         users = crud.modify_user(db, newuser)
@@ -136,24 +136,24 @@ def update_users(newuser:schemas.User, db: Session = Depends(get_db),current_use
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
 
-@app.get("/oauth/show/{uname}", response_model=schemas.User,tags=["用户管理"],summary="获取用户")
+@app.get("/oauth/show/{username}", response_model=schemas.User,tags=["用户管理"],summary="获取用户")
 #给管理员查看用户信息的
-def read_user(uname: str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+def read_user(username: str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority=='0':
         raise HTTPException(status_code=401, detail=" Unauthorized")
-    db_user = crud.get_user(db, uname=uname)
+    db_user = crud.get_user(db, username=username)
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
 
-@app.delete('/oauth/delete/user/{uname}',tags=["用户管理"],summary="删除用户")
-async def delete_user(uname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    if uname==current_user.uname or current_user.authority=='1':
-        db_user=crud.get_user(db=db,uname=uname)
+@app.delete('/oauth/delete/user/{username}',tags=["用户管理"],summary="删除用户")
+async def delete_user(username:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if username==current_user.username or current_user.authority=='1':
+        db_user=crud.get_user(db=db,username=username)
         if not db_user:
             raise HTTPException(status_code=400, detail="No this user")
         else:
-            return crud.drop_user(db=db,uname=uname)
+            return crud.drop_user(db=db,username=username)
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
         
@@ -162,16 +162,16 @@ async def mosaic_for_multpic(mosadata:mosaic.MosaData):
     num = mosaic.mul_mosaic(mosadata = mosadata)
     return {"outfolder": mosaic.PATH +mosadata.path+'\\output',"sucess":num}
 
-@app.post("/oauth/upload/{uname}/",tags=["文件管理"],summary="用户上传")
+@app.post("/oauth/upload/{username}/",tags=["文件管理"],summary="用户上传")
 async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     flag=0
     list1=[]
-    path = pathlib.Path('userdata/'+current_user.uname)
+    path = pathlib.Path('userdata/'+current_user.username)
     if not path.exists():
         path.mkdir()
     for file in files:
         picname=file.filename
-        db_pic = crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
+        db_pic = crud.get_user_pic(db=db,username=current_user.username,picname=picname)
         if db_pic:
             flag=1
             list1.append(file.filename)
@@ -180,7 +180,7 @@ async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_
             with open(path.joinpath(file.filename), "wb") as f:#按文件名写入文件
                 f.write(res)
             
-            pic1=models.Pic(picname=file.filename,owner_id=current_user.uname)
+            pic1=models.Pic(picname=file.filename,owner_id=current_user.username)
             crud.create_user_pic(db=db, pic=pic1)
 
     if flag==1:
@@ -191,26 +191,26 @@ async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_
     else:  
         return {"message": "success"}
 
-@app.get('/oauth/download/{uname}/',tags=["文件管理"],summary="文件下载")
+@app.get('/oauth/download/{username}/',tags=["文件管理"],summary="文件下载")
 async def download_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    path=pathlib.Path('userdata/'+current_user.uname)#文件保存的根目录
-    db_file=crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)#查找文件记录
+    path=pathlib.Path('userdata/'+current_user.username)#文件保存的根目录
+    db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)#查找文件记录
     if db_file:
         #按文件保存路径找到并发送文件
         return FileResponse(path=path.joinpath(db_file.picname),filename=db_file.picname)
 
 
-@app.get("/oauth/show/{uname}/pics/{picname}", response_model=schemas.Pic,tags=["文件管理"],summary="文件查询")
+@app.get("/oauth/show/{username}/pics/{picname}", response_model=schemas.Pic,tags=["文件管理"],summary="文件查询")
 def read_pic(picname: str,db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    db_pic = crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
+    db_pic = crud.get_user_pic(db=db,username=current_user.username,picname=picname)
     if db_pic is None:
         raise HTTPException(status_code=404, detail="Pic not found")
     return db_pic
 
-@app.delete('/oauth/delete/{uname}/pics/{picname}',tags=["文件管理"],summary="删除文件")
+@app.delete('/oauth/delete/{username}/pics/{picname}',tags=["文件管理"],summary="删除文件")
 async def delete_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    path=pathlib.Path('userdata/'+current_user.uname)
-    db_file=crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
+    path=pathlib.Path('userdata/'+current_user.username)
+    db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)
     if not db_file:
         raise HTTPException(status_code=400, detail="No this file")
     else:
