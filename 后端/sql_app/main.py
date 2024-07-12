@@ -162,71 +162,71 @@ async def mosaic_for_multpic(mosadata:mosaic.MosaData,current_user: models.User 
     num = mosaic.mul_mosaic(mosadata = mosadata)
     return {"outfolder": mosaic.PATH +mosadata.path+'\\output',"sucess":num}
 
-@app.post("/oauth/upload/{username}/",tags=["文件管理"],summary="用户上传")
+@app.post("/oauth/upload/{uname}/",tags=["文件管理"],summary="用户上传")
 async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     flag=0
     list1=[]
-    path = pathlib.Path('userdata/'+current_user.username)
+    path = pathlib.Path('userdata/'+current_user.uname , "input")
     if not path.exists():
         path.mkdir()
     for file in files:
         picname=file.filename
-        db_pic = crud.get_user_pic(db=db,username=current_user.username,picname=picname)
+        db_pic = crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
         if db_pic:
             flag=1
             list1.append(file.filename)
-            res = await file.read()#读取文件内容
-            with open(path.joinpath(file.filename), "wb") as f:#按文件名写入文件
-                f.write(res)
         else:
             res = await file.read()#读取文件内容
             with open(path.joinpath(file.filename), "wb") as f:#按文件名写入文件
                 f.write(res)
             
-            pic1=models.Pic(picname=file.filename,owner_id=current_user.username)
+            pic1=models.Pic(picname=file.filename,owner_id=current_user.uname)
             crud.create_user_pic(db=db, pic=pic1)
 
     if flag==1:
         detail=""
         for i in list1:
             detail=detail+i+" "
-        return {"message": detail+" 被覆盖"}
+        return {"message": "fail"}
     else:  
         return {"message": "success"}
 
-@app.get('/oauth/download/{username}/',tags=["文件管理"],summary="文件下载")
+@app.get('/oauth/download/{uname}/',tags=["文件管理"],summary="文件下载")
 async def download_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    path=pathlib.Path('userdata/'+current_user.username)#文件保存的根目录
-    db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)#查找文件记录
+    path=pathlib.Path('userdata/'+current_user.uname,"output")#文件保存的根目录
+    db_file=crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)#查找文件记录
     if db_file:
         #按文件保存路径找到并发送文件
         return FileResponse(path=path.joinpath(db_file.picname),filename=db_file.picname)
 
 
-@app.get("/oauth/show/{username}/pics/{picname}", response_model=schemas.Pic,tags=["文件管理"],summary="文件查询")
+
+@app.get("/oauth/show/{uname}/pics/{picname}", response_model=schemas.Pic,tags=["文件管理"],summary="文件查询")
 def read_pic(picname: str,db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    db_pic = crud.get_user_pic(db=db,username=current_user.username,picname=picname)
+    db_pic = crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
     if db_pic is None:
         raise HTTPException(status_code=404, detail="Pic not found")
     return db_pic
 
-@app.delete('/oauth/delete/{username}/pics/{picname}',tags=["文件管理"],summary="删除文件")
+@app.delete('/oauth/delete/{uname}/pics/{picname}',tags=["文件管理"],summary="删除文件")
 async def delete_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    path=pathlib.Path('userdata/'+current_user.username)
-    db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)
+    path=pathlib.Path('userdata/'+current_user.uname)
+    db_file=crud.get_user_pic(db=db,uname=current_user.uname,picname=picname)
     if not db_file:
         raise HTTPException(status_code=400, detail="No this file")
     else:
-        path=path.joinpath(db_file.picname)#路径从目录移动到目录下的文件
+        path_input=path.joinpath("input",db_file.picname)#路径从目录移动到目录下的文件
+        path_output=path.joinpath("output",db_file.picname)
         print(path)
         if path.exists():
             try:
-                path.unlink()#删除文件
+                path_input.unlink()#删除文件
+                path_output.unlink()
             except:
                 raise HTTPException(status_code=500, detail="Failed to delete this file")
         '''
         path.unlink()#可能需要修改文件夹权限才能删除文件
-        linux 系统可以用代码控制，Windows系统需要打开资源管理器手动修改
+        linux 系统可以用代码控制,Windows系统需要打开资源管理器手动修改
         '''
     return crud.drop_file(db=db,pic=db_file)
 
