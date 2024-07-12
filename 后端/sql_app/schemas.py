@@ -15,8 +15,24 @@ class Pic(PicBase):
     class Config:
         orm_mode = True
 
+class WordBase(BaseModel):
+    owner_id:str
+    name:str
+    word:str
+    
+
+class WordCreate(WordBase):
+    pass
+
+class Word(WordCreate):
+    owner_id:str
+    name:str
+    word:str
+    class Config:
+        orm_mode = True
+
 class UserBase(BaseModel):
-    uname:str
+    username:str
     password: str
     
 
@@ -25,7 +41,7 @@ class UserCreate(UserBase):
 
 
 class User(UserBase):
-    uname :str
+    username :str
     password:str
     is_active :str
     authority :str
