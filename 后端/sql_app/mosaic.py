@@ -82,34 +82,3 @@ def mul_mosaic(mosadata:MosaData):
    
 
 
-#测试用例
-
-# name = r"C:\PM\lab\fastapi\demoAPI\input_123\1.jpg"
-# name = r"input_123\1.jpg"
-# name = "1.jpg"
-
-mosadata = MosaData(path = "123",
-# ID = ["1.jpg","2.jpg","3.jpg"],
-ID = ["4.png"],
-location_set = [[10,70,13,17],[42,53,14,18]],#2
-# location_set = [[70,10,83,27],[53,42,67,60]],
-# location_set = [[10,70,27,83],[42,53,60,67]],#1
-style = 4,
-mosasize=30)
-
-mul_mosaic(mosadata)
-# {
-#   "path": "123",
-#   "ID": [
-#     "1.jpg","2.jpg","3.jpg","4.png","1234.png"
-#   ],
-#   "location_set": [
-#     [
-#       10,10,50,50
-#     ]
-#   ],
-#   "style": 1,
-#   "mosasize": 30
-# }
-
-# mosa(name,x1,y1,x2,y2,style,30)
