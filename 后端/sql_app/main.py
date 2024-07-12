@@ -227,7 +227,8 @@ async def delete_user(username:str,db:Session=Depends(get_db),current_user: mode
             raise HTTPException(status_code=400, detail="No this user")
         else:
             path = pathlib.Path('userdata/'+current_user.username)
-            shutil.rmtree(path)
+            if path.exists():
+                shutil.rmtree(path)
             return crud.drop_user(db=db,username=username)
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
