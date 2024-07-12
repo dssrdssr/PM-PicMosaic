@@ -175,6 +175,9 @@ async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_
         if db_pic:
             flag=1
             list1.append(file.filename)
+            res = await file.read()#读取文件内容
+            with open(path.joinpath(file.filename), "wb") as f:#按文件名写入文件
+                f.write(res)
         else:
             res = await file.read()#读取文件内容
             with open(path.joinpath(file.filename), "wb") as f:#按文件名写入文件
@@ -187,7 +190,7 @@ async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_
         detail=""
         for i in list1:
             detail=detail+i+" "
-        return {"message": "fail"}
+        return {"message": detail+" 被覆盖"}
     else:  
         return {"message": "success"}
 
