@@ -1,5 +1,11 @@
 import os
+import io
 import pathlib
+import cv2
+import imageio
+from scipy import misc
+from PIL import Image
+from matplotlib import pyplot as plt
 from typing import List
 from fastapi import applications
 from fastapi import Depends, FastAPI, HTTPException,  status
@@ -19,33 +25,36 @@ import pathlib #处理文件路径
 from .database import SessionLocal, engine
 import base64
 from PIL import Image
+from fastapi.middleware.cors import CORSMiddleware
+
+
 models.Base.metadata.create_all(bind=engine)
-
 app = FastAPI(docs_url=None,redoc_url=None,title="PM")
-
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 fastapi_cdn_host.patch_docs(app, favicon_url='/static/hospital.svg')
+
 
 def crop_image(image_path, x1, y1, x2, y2):
     # 打开图片
     img = Image.open(image_path)
     # 裁剪图片
-    cropped_img = img.crop((x1, y1,x2, y2))
-    # 显示裁剪后的图片（可选）
-    # cropped_img.show()
+    cropped_img = img.crop((x1, y1, x2, y2))
+    # 转换为 RGB 模式（如果需要）
     if cropped_img.mode == 'RGBA':
-        cropped_image = cropped_img.convert('RGB')
-    # 保存裁剪后的图片，然后将新的路径传递给图像识别和敏感词识别函数
-        cropped_image.save(f"cropped_image_{image_path}.jpg")
-    elif cropped_img.mode == 'RGB':
-        cropped_img.save(f"cropped_image_{image_path}.jpg")
-    with open(f"cropped_image_{image_path}.jpg", "rb") as f:
-        image_data = f.read()
-        base64_string = base64.b64encode(image_data).decode('utf-8')
-    if os.path.exists(f"cropped_image_{image_path}.jpg"):
-        # 删除文件
-        os.remove(f"cropped_image_{image_path}.jpg")
-    print(base64_string)
+        cropped_img = cropped_img.convert('RGB')
+    # 将图片转换为字节流
+    buffered = io.BytesIO()
+    cropped_img.save(buffered, format="JPEG")
+    # 将字节流转换为base64字符串
+    base64_string = base64.b64encode(buffered.getvalue()).decode('utf-8')
     return base64_string
+
 
 def dict_crop(result_dict,x1, y1):
     for all_line_position in result_dict['all_line_position']:
@@ -65,6 +74,7 @@ def dict_crop(result_dict,x1, y1):
     # 保存裁剪后的图片
     #cropped_img.save("cropped_image.jpg")
 
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
@@ -82,6 +92,9 @@ def custom_openapi():
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 app.openapi = custom_openapi
+
+
+
 # Dependency
 def filetobase64(image_path:str):
     with open(image_path, "rb") as f:
@@ -89,16 +102,19 @@ def filetobase64(image_path:str):
         base64_string = base64.b64encode(image_data).decode('utf-8')
         return base64_string
 
+
 def filetoimageurl(image_path:str):
     with open(image_path, "rb") as f:
         image_data = f.read()
         base64_string = base64.b64encode(image_data).decode('utf-8')
         url = "data:image/jpeg;base64," + base64_string
         return url
-    
+
+
 def path_to_base64_cropping(image_path,x1,y1,x2,y2):
     base64_string=crop_image(image_path, x1, y1, x2, y2)
     return base64_string
+
 
 def get_db():
     db = SessionLocal()
@@ -107,7 +123,9 @@ def get_db():
     finally:
         db.close()
 
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     dbuser = crud.get_user(db, token)
@@ -125,6 +143,12 @@ async def get_current_active_user(current_user: models.User = Depends(get_curren
         raise HTTPException(status_code=400, detail="Inactive user")
     return current_user
 
+async def mosaic_for_multpic(ID:list[str],location_set:list[list[int]],style:int = 1,mosasize:int =30,current_user: models.User = Depends(get_current_active_user)):
+    mosadata= mosaic.MosaData(path=current_user.username,ID=ID,location_set=location_set,style=style,mosasize=mosasize)
+    num = mosaic.mul_mosaic(mosadata = mosadata)
+    return {"outfolder": mosaic.PATH.joinpath(mosadata.path,'output'),"sucess":num}
+
+
 #todo
 @app.post("/token",tags=["用户管理"],summary="登录用户")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
@@ -134,7 +158,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     fpwd=form_data.password
     if not fpwd == dbuser.password:
         raise HTTPException(status_code=400, detail="Incorrect password")
-    return {"access_token": dbuser.username, "token_type": "bearer"}
+    return {"access_token": dbuser.username, "token_type": "bearer","authority":dbuser.authority}
 
 
 @app.post("/oauth/register", response_model=schemas.User,tags=["用户管理"],summary="注册用户")
@@ -155,12 +179,14 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 async def read_users_me(current_user: models.User = Depends(get_current_active_user)):
     return current_user
 
+
 @app.get("/oauth/", response_model=list[schemas.User],tags=["用户管理"],summary="查看用户列表")
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority=='0':
         raise HTTPException(status_code=401, detail=" Unauthorized")
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
+
 
 @app.put("/oauth/change/{username}", response_model=schemas.User,tags=["用户管理"],summary="修改密码")
 def update_users(newpassword:str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
@@ -177,7 +203,10 @@ def update_users(newuser:schemas.User, db: Session = Depends(get_db),current_use
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
 
+
 @app.get("/oauth/show/{username}", response_model=schemas.User,tags=["用户管理"],summary="获取用户")
+
+
 #给管理员查看用户信息的
 def read_user(username: str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority=='0':
@@ -186,6 +215,7 @@ def read_user(username: str, db: Session = Depends(get_db),current_user: models.
     if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
+
 
 @app.delete('/oauth/delete/user/{username}',tags=["用户管理"],summary="删除用户")
 async def delete_user(username:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
@@ -198,10 +228,6 @@ async def delete_user(username:str,db:Session=Depends(get_db),current_user: mode
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
         
-#@app.post("/opencv/",tags=["图片处理"],summary="调用opencv打码处理批量图片")
-async def mosaic_for_multpic(mosadata:mosaic.MosaData,current_user: models.User = Depends(get_current_active_user)):
-    num = mosaic.mul_mosaic(mosadata = mosadata)
-    return {"outfolder": mosaic.PATH +mosadata.path+'\\output',"sucess":num}
 
 @app.post("/oauth/upload/{username}/",tags=["文件管理"],summary="用户上传")
 async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
@@ -235,6 +261,7 @@ async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_
     else:  
         return {"message": "success"}
 
+
 @app.get('/oauth/download/origin/{username}/',tags=["文件管理"],summary="原始文件下载")
 async def download_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     path=pathlib.Path('userdata/'+current_user.username+'/input')#文件保存的根目录
@@ -246,6 +273,7 @@ async def download_file(picname:str,db:Session=Depends(get_db),current_user: mod
         return FileResponse(path=path.joinpath(db_file.picname),filename=db_file.picname)
     raise HTTPException(status_code=401, detail="No file to download")
     
+
 @app.get('/oauth/download/{username}/',tags=["文件管理"],summary="打码文件下载")
 async def download_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     path=pathlib.Path('userdata/'+current_user.username+'/output')#文件保存的根目录
@@ -256,6 +284,7 @@ async def download_file(picname:str,db:Session=Depends(get_db),current_user: mod
         #按文件保存路径找到并发送文件
         return FileResponse(path=path.joinpath(db_file.picname),filename=db_file.picname)
     raise HTTPException(status_code=401, detail="No file to download")
+
 
 @app.get('/oauth/showall/{username}/',tags=["文件管理"],summary="显示所有图片")
 async def download_file(db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
@@ -279,7 +308,7 @@ async def download_file(db:Session=Depends(get_db),current_user: models.User = D
                 list1.append(pathlib.Path('userdata/'+current_user.username+'/output/'+filename))
             i=i+1
         return list1
-    raise HTTPException(status_code=401, detail="No file to download")
+    raise HTTPException(status_code=401, detail="No file to show")
 
 
 @app.get("/oauth/show/{username}/pics/{picname}", response_model=schemas.Pic,tags=["文件管理"],summary="文件查询")
@@ -288,6 +317,7 @@ def read_pic(picname: str,db: Session = Depends(get_db),current_user: models.Use
     if db_pic is None:
         raise HTTPException(status_code=404, detail="Pic not found")
     return db_pic
+
 
 @app.delete('/oauth/delete/{username}/pics/{picname}',tags=["文件管理"],summary="删除文件")
 async def delete_file(picname:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
@@ -319,17 +349,28 @@ async def delete_file(picname:str,db:Session=Depends(get_db),current_user: model
         '''
     return crud.drop_file(db=db,pic=db_file)
 
+
 #name是敏感词语库的名称
-@app.post("/image/base64/words/free",tags=["信息识别"],summary="敏感词库信息识别1")
-async def image_word_base64(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+@app.post("/image/base64/words/free",tags=["信息识别"],summary="免费敏感词库信息识别")
+async def image_word_base64(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if picname=="":
+        raise HTTPException(status_code=400, detail="No this file")  
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
     if name=="":
         word_list=[]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    base64=filetobase64(file)
+    if x1==-1 and y1==-1:
+        if x2==-1 and y2==-1:
+            x1=0
+            y1=0
+            img_pillow = Image.open(file)
+            x2 = img_pillow.width  # 图片宽度
+            y2 = img_pillow.height     
+    base64 = path_to_base64_cropping(file, x1, y1, x2, y2)
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
+    result_dict = dict_crop(result_dict, x1, y1)
     location = []
     temp_list = []
     for i in result_dict['all_char_location']:
@@ -337,43 +378,27 @@ async def image_word_base64(picname: str,name:str="", style:int = 1,mosasize:int
         for j in i['location'].values():
             temp_list.append(j)
         location.append(temp_list)
-        print(location)
-    print(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
-@app.post("/image/url/words/free",tags=["信息识别"],summary="敏感词库信息识别2")
-async def image_word_url(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    word_list=crud.show_words(name=name,user=current_user,db=db)
-    if word_list==0:
-        word_list=[]
-    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    image_url=filetoimageurl(file)
-    result_dict=await main_async.use_image_url_word_async(image_url,word_list)
-    location = []
-    temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
-        print(location)
-    print(temp_list)
-    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
-    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
-
-
-@app.post("/image/base64/words/baidu",tags=["信息识别"],summary="敏感词库信息识别3")
-async def image_word_base64_baidu(x1,y1,x2,y2,picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+@app.post("/image/base64/words/baidu",tags=["信息识别"],summary="收费敏感词库信息识别")
+async def image_word_base64_baidu(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if picname=="":
+        raise HTTPException(status_code=400, detail="No this file")  
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
     if name=="":
         word_list=[]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
+    if x1==-1 and y1==-1:
+        if x2==-1 and y2==-1:
+            x1=0
+            y1=0
+            img_pillow = Image.open(file)
+            x2 = img_pillow.width  # 图片宽度
+            y2 = img_pillow.height
     base64=path_to_base64_cropping(file,x1,y1,x2,y2)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
     result_dict=dict_crop(result_dict,x1,y1)
@@ -384,39 +409,25 @@ async def image_word_base64_baidu(x1,y1,x2,y2,picname: str,name:str="", style:in
         for j in i['location'].values():
             temp_list.append(j)
         location.append(temp_list)
-        print(location)
-    print(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
-    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
-
-@app.post("/image/url/words/baidu",tags=["信息识别"],summary="敏感词库信息识别4")
-async def image_word_url_baidu(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    word_list=crud.show_words(name=name,user=current_user,db=db)
-    if word_list==0:
-        word_list=[]
-    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    image_url=filetoimageurl(file)
-    result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
-    location = []
-    temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
-        print(location)
-    print(temp_list)
-    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
-@app.post("/image/base64/word/free",tags=["信息识别"],summary="敏感词信息识别1")
-async def image_word_base64(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+#临时敏感词
+@app.post("/image/base64/word/free",tags=["信息识别"],summary="免费临时敏感词信息识别")
+async def image_word_base64(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if picname=="":
+        raise HTTPException(status_code=400, detail="No this file")
     word_list=[name]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    base64=filetobase64(file)
+    if x1==-1 and y1==-1:
+        if x2==-1 and y2==-1:
+            x1=0
+            y1=0
+            img_pillow = Image.open(file)
+            x2 = img_pillow.width  # 图片宽度
+            y2 = img_pillow.height
+    base64 = path_to_base64_cropping(file, x1, y1, x2, y2)
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
     location = []
     temp_list = []
@@ -425,39 +436,24 @@ async def image_word_base64(picname: str,name:str="", style:int = 1,mosasize:int
         for j in i['location'].values():
             temp_list.append(j)
         location.append(temp_list)
-        print(location)
-    print(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
-@app.post("/image/url/word/free",tags=["信息识别"],summary="敏感词信息识别2")
-async def image_word_url(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+@app.post("/image/base64/word/baidu",tags=["信息识别"],summary="收费临时敏感词信息识别")
+async def image_word_base64_baidu(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if picname=="":
+        raise HTTPException(status_code=400, detail="No this file")
     word_list=[name]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    image_url=filetoimageurl(file)
-    result_dict=await main_async.use_image_url_word_async(image_url,word_list)
-    location = []
-    temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
-        print(location)
-    print(temp_list)
-    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
-    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
-
-
-@app.post("/image/base64/word/baidu",tags=["信息识别"],summary="敏感词信息识别3")
-async def image_word_base64_baidu(x1,x2,y1,y2,picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    word_list=[name]
-    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    base64=path_to_base64_cropping(file)
-    result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
+    base64=path_to_base64_cropping(file,x1,y1,x2,y2)
+    if x1==-1 and y1==-1:
+        if x2==-1 and y2==-1:
+            x1=0
+            y1=0
+            img_pillow = Image.open(file)
+            x2 = img_pillow.width  # 图片宽度
+            y2 = img_pillow.height
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
     result_dict=dict_crop(result_dict,x1,y1)
     location = []
@@ -467,40 +463,18 @@ async def image_word_base64_baidu(x1,x2,y1,y2,picname: str,name:str="", style:in
         for j in i['location'].values():
             temp_list.append(j)
         location.append(temp_list)
-        print(location)
-    print(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
-@app.post("/image/url/word/baidu",tags=["信息识别"],summary="敏感词信息识别4")
-async def image_word_url_baidu(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    word_list=[name]
-    file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    image_url=filetoimageurl(file)
-    result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
-    location = []
-    temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
-        print(location)
-    print(temp_list)
-    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
-
-    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
-
-
-#敏感词库的
+#敏感词库的crud
 @app.post("/oauth/register/{username}/words", response_model=schemas.Word,tags=["敏感词库"],summary="创建词库")
 def create_words(name:str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     db_words = crud.get_words(db, name=name,user=current_user)
     if db_words:
         raise HTTPException(status_code=400, detail="The 词库 has already been registered")
     return crud.create_words(db=db, name=name,user=current_user)
+
 
 @app.post("/oauth/register/{username}/words/word", response_model=schemas.Word,tags=["敏感词库"],summary="添加敏感词")
 def create_word(name:str, word:str,db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
@@ -513,12 +487,14 @@ def create_word(name:str, word:str,db: Session = Depends(get_db),current_user: m
     else:
         raise HTTPException(status_code=400, detail="没有该词库")
 
+
 @app.get("/oauth/show/{username}/words",tags=["敏感词库"],summary="显示已有敏感词")
 async def read_words(name:str,current_user: models.User = Depends(get_current_active_user),db: Session = Depends(get_db)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         raise HTTPException(status_code=400, detail="No this 词库")
     return word_list
+
 
 @app.delete('/oauth/delete/{username}/words',tags=["敏感词库"],summary="删除敏感词库")
 async def delete_words(name:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
@@ -528,6 +504,7 @@ async def delete_words(name:str,db:Session=Depends(get_db),current_user: models.
     else:
         raise HTTPException(status_code=400, detail="No 这个词库")
     
+
 @app.delete('/oauth/delete/{username}/words/word',tags=["敏感词库"],summary="删除敏感词")
 async def delete_word(name:str,word:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     db_words=crud.get_words(db, name=name,user=current_user)
@@ -540,6 +517,8 @@ async def delete_word(name:str,word:str,db:Session=Depends(get_db),current_user:
     else:
         raise HTTPException(status_code=400, detail="No 这个词库")
 
+
+#后端显示文件
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
     return get_swagger_ui_html(
