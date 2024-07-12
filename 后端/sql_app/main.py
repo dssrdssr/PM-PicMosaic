@@ -227,9 +227,15 @@ async def delete_file(picname:str,db:Session=Depends(get_db),current_user: model
         '''
     return crud.drop_file(db=db,pic=db_file)
 
-@app.post("/image/base64/word/free",tags=["信息识别"],summary="信息识别1")
-async def image_word_base64(picname: str,word_list:list[str],db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    file=pathlib.Path('userdata/'+current_user.uname+'/'+picname)
+#name是敏感词语库的名称
+@app.post("/image/base64/words/free",tags=["信息识别"],summary="敏感词库信息识别1")
+async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=crud.show_words(name=name,user=current_user,db=db)
+    if word_list==0:
+        word_list=[]
+    if name=="":
+        word_list=[]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
     base64=filetobase64(file)
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -237,9 +243,12 @@ async def image_word_base64(picname: str,word_list:list[str],db:Session=Depends(
             "all_char_location":result_dict['all_char_location'],}
 
 
-@app.post("/image/url/word/free",tags=["信息识别"],summary="信息识别2")
-async def image_word_url(picname: str,word_list:list[str],db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    file=pathlib.Path('userdata/'+current_user.uname+'/'+picname)
+@app.post("/image/url/words/free",tags=["信息识别"],summary="敏感词库信息识别2")
+async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=crud.show_words(name=name,user=current_user,db=db)
+    if word_list==0:
+        word_list=[]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_async(image_url,word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -247,9 +256,14 @@ async def image_word_url(picname: str,word_list:list[str],db:Session=Depends(get
             "all_char_location":result_dict['all_char_location'],}
 
 
-@app.post("/image/base64/word/baidu",tags=["信息识别"],summary="信息识别3")
-async def image_word_base64_baidu(picname: str,word_list:list[str],db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    file=pathlib.Path('userdata/'+current_user.uname+'/'+picname)
+@app.post("/image/base64/words/baidu",tags=["信息识别"],summary="敏感词库信息识别3")
+async def image_word_base64_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=crud.show_words(name=name,user=current_user,db=db)
+    if word_list==0:
+        word_list=[]
+    if name=="":
+        word_list=[]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
     base64=filetobase64(file)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
     return {"len_words_result": result_dict['len_words_result'],
@@ -257,14 +271,108 @@ async def image_word_base64_baidu(picname: str,word_list:list[str],db:Session=De
             "all_char_location":result_dict['all_char_location'],}
 
 
-@app.post("/image/url/word/baidu",tags=["信息识别"],summary="信息识别")
-async def image_word_url_baidu(picname: str,word_list:list,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
-    file=pathlib.Path('userdata/'+current_user.uname+'/'+picname)
+@app.post("/image/url/words/baidu",tags=["信息识别"],summary="敏感词库信息识别4")
+async def image_word_url_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=crud.show_words(name=name,user=current_user,db=db)
+    if word_list==0:
+        word_list=[]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
     return {"len_words_result": result_dict['len_words_result'],
             "all_line_position":result_dict['all_line_position'],
             "all_char_location":result_dict['all_char_location'], }
+
+
+@app.post("/image/base64/word/free",tags=["信息识别"],summary="敏感词信息识别1")
+async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=[name]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    base64=filetobase64(file)
+    result_dict=await main_async.use_image_base64_word_async(base64,word_list)
+    return {"len_words_result": result_dict['len_words_result'],
+            "all_line_position":result_dict['all_line_position'],
+            "all_char_location":result_dict['all_char_location'],}
+
+
+@app.post("/image/url/word/free",tags=["信息识别"],summary="敏感词信息识别2")
+async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=[name]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    image_url=filetoimageurl(file)
+    result_dict=await main_async.use_image_url_word_async(image_url,word_list)
+    return {"len_words_result": result_dict['len_words_result'],
+            "all_line_position":result_dict['all_line_position'],
+            "all_char_location":result_dict['all_char_location'],}
+
+
+@app.post("/image/base64/word/baidu",tags=["信息识别"],summary="敏感词信息识别3")
+async def image_word_base64_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=[name]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    base64=filetobase64(file)
+    result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
+    return {"len_words_result": result_dict['len_words_result'],
+            "all_line_position":result_dict['all_line_position'],
+            "all_char_location":result_dict['all_char_location'],}
+
+
+@app.post("/image/url/word/baidu",tags=["信息识别"],summary="敏感词信息识别4")
+async def image_word_url_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    word_list=[name]
+    file=pathlib.Path('userdata/'+current_user.username+'/'+picname)
+    image_url=filetoimageurl(file)
+    result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
+    return {"len_words_result": result_dict['len_words_result'],
+            "all_line_position":result_dict['all_line_position'],
+            "all_char_location":result_dict['all_char_location'], }
+
+
+#敏感词库的
+@app.post("/oauth/register/{username}/words", response_model=schemas.Word,tags=["敏感词库"],summary="创建词库")
+def create_words(name:str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    db_words = crud.get_words(db, name=name,user=current_user)
+    if db_words:
+        raise HTTPException(status_code=400, detail="The 词库 has already been registered")
+    return crud.create_words(db=db, name=name,user=current_user)
+
+@app.post("/oauth/register/{username}/words/word", response_model=schemas.Word,tags=["敏感词库"],summary="添加敏感词")
+def create_word(name:str, word:str,db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    db_words = crud.get_words(db, name=name,user=current_user)
+    if db_words:
+        db_word = crud.get_word(db, name=name,word=word,user=current_user)
+        if db_word:
+            raise HTTPException(status_code=400, detail="The 敏感词 has already been registered")
+        return crud.create_word(db=db, name=name,user=current_user,word=word)
+    else:
+        raise HTTPException(status_code=400, detail="没有该词库")
+
+@app.get("/oauth/show/{username}/words",tags=["敏感词库"],summary="显示已有敏感词")
+async def read_words(name:str,current_user: models.User = Depends(get_current_active_user),db: Session = Depends(get_db)):
+    word_list=crud.show_words(name=name,user=current_user,db=db)
+    if word_list==0:
+        raise HTTPException(status_code=400, detail="No this 词库")
+    return word_list
+
+@app.delete('/oauth/delete/{username}/words',tags=["敏感词库"],summary="删除敏感词库")
+async def delete_words(name:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    db_words=crud.get_words(db, name=name,user=current_user)
+    if db_words:
+        return crud.drop_words(db=db,name=name,user=current_user)
+    else:
+        raise HTTPException(status_code=400, detail="No 这个词库")
+    
+@app.delete('/oauth/delete/{username}/words/word',tags=["敏感词库"],summary="删除敏感词")
+async def delete_word(name:str,word:str,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    db_words=crud.get_words(db, name=name,user=current_user)
+    if db_words:
+        db_word = crud.get_word(db, name=name,word=word,user=current_user)
+        if db_word:
+            return crud.drop_word(db=db,name=name,user=current_user,word=word)
+        else:
+            raise HTTPException(status_code=400, detail="No 这个敏感词")
+    else:
+        raise HTTPException(status_code=400, detail="No 这个词库")
 
 @app.get("/docs", include_in_schema=False)
 async def custom_swagger_ui_html():
