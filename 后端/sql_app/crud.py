@@ -39,6 +39,16 @@ def get_user_pic(db: Session,username: str,picname:str):
     pic=db.query(models.Pic).filter(models.Pic.owner_id == username).filter(models.Pic.picname == picname ).first()
     return pic
 
+def show_pics(user: schemas.User,db: Session):
+    list1=[]
+    for onwer_id,picname in db.query(models.Pic.owner_id,models.Pic.picname):
+        if onwer_id==user.username and picname!="":
+            list1.append(picname)
+    if len(list1)==0:
+        return 0
+    else:
+        return list1
+
 def create_user_pic(db: Session, pic: schemas.PicCreate):
     db_pic = models.Pic(owner_id=pic.owner_id,picname=pic.picname)
     db.add(db_pic)
