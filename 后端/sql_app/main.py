@@ -3,6 +3,8 @@ import io
 import pathlib
 import cv2
 import imageio
+import shutil
+
 from scipy import misc
 from PIL import Image
 from matplotlib import pyplot as plt
@@ -224,6 +226,8 @@ async def delete_user(username:str,db:Session=Depends(get_db),current_user: mode
         if not db_user:
             raise HTTPException(status_code=400, detail="No this user")
         else:
+            path = pathlib.Path('userdata/'+current_user.username)
+            shutil.rmtree(path)
             return crud.drop_user(db=db,username=username)
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
