@@ -321,7 +321,7 @@ async def delete_file(picname:str,db:Session=Depends(get_db),current_user: model
 
 #name是敏感词语库的名称
 @app.post("/image/base64/words/free",tags=["信息识别"],summary="敏感词库信息识别1")
-async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
@@ -330,26 +330,44 @@ async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     base64=filetobase64(file)
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'],}
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
 @app.post("/image/url/words/free",tags=["信息识别"],summary="敏感词库信息识别2")
-async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_url(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_async(image_url,word_list)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'],}
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
 @app.post("/image/base64/words/baidu",tags=["信息识别"],summary="敏感词库信息识别3")
-async def image_word_base64_baidu(x1,y1,x2,y2,picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64_baidu(x1,y1,x2,y2,picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
@@ -359,67 +377,121 @@ async def image_word_base64_baidu(x1,y1,x2,y2,picname: str,name:str="",db:Sessio
     base64=path_to_base64_cropping(file,x1,y1,x2,y2)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
     result_dict=dict_crop(result_dict,x1,y1)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'],}
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 @app.post("/image/url/words/baidu",tags=["信息识别"],summary="敏感词库信息识别4")
-async def image_word_url_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_url_baidu(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         word_list=[]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'], }
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
 @app.post("/image/base64/word/free",tags=["信息识别"],summary="敏感词信息识别1")
-async def image_word_base64(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     base64=filetobase64(file)
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'],}
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
 @app.post("/image/url/word/free",tags=["信息识别"],summary="敏感词信息识别2")
-async def image_word_url(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_url(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_async(image_url,word_list)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'],}
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
 @app.post("/image/base64/word/baidu",tags=["信息识别"],summary="敏感词信息识别3")
-async def image_word_base64_baidu(x1,x2,y1,y2,picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64_baidu(x1,x2,y1,y2,picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     base64=path_to_base64_cropping(file)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
     result_dict=dict_crop(result_dict,x1,y1)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'],}
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
 @app.post("/image/url/word/baidu",tags=["信息识别"],summary="敏感词信息识别4")
-async def image_word_url_baidu(picname: str,name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_url_baidu(picname: str,name:str="", style:int = 1,mosasize:int = 30,db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     word_list=[name]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
     image_url=filetoimageurl(file)
     result_dict=await main_async.use_image_url_word_baidu_async_one(image_url, word_list)
-    return {"len_words_result": result_dict['len_words_result'],
-            "all_line_position":result_dict['all_line_position'],
-            "all_char_location":result_dict['all_char_location'], }
+    location = []
+    temp_list = []
+    for i in result_dict['all_char_location']:
+        temp_list=[]
+        for j in i['location'].values():
+            temp_list.append(j)
+        location.append(temp_list)
+        print(location)
+    print(temp_list)
+    result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
+
+    return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
 
 #敏感词库的
