@@ -551,8 +551,16 @@ def create_word(name:str, word:str,db: Session = Depends(get_db),current_user: m
         raise HTTPException(status_code=400, detail="没有该词库")
 
 
-@app.get("/oauth/show/{username}/words",tags=["敏感词库"],summary="显示已有敏感词")
-async def read_words(name:str,current_user: models.User = Depends(get_current_active_user),db: Session = Depends(get_db)):
+@app.get("/oauth/show/{username}/words",tags=["敏感词库"],summary="显示已有敏感词库")
+async def read_words(current_user: models.User = Depends(get_current_active_user),db: Session = Depends(get_db)):
+    word_list=crud.show_diction(user=current_user,db=db)
+    if word_list==0:
+        raise HTTPException(status_code=400, detail="No this 词库")
+    return word_list
+
+
+@app.get("/oauth/show/{username}/word",tags=["敏感词库"],summary="显示已有敏感词")
+async def read_word(name:str,current_user: models.User = Depends(get_current_active_user),db: Session = Depends(get_db)):
     word_list=crud.show_words(name=name,user=current_user,db=db)
     if word_list==0:
         raise HTTPException(status_code=400, detail="No this 词库")
