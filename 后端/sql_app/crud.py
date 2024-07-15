@@ -95,6 +95,22 @@ def create_word(db: Session, name:str,word:str,user: schemas.User):
     return db_word
 
 
+def show_diction(user: schemas.User,db: Session):
+    list1=[]
+    for onwer_id,name in db.query(models.Word.owner_id,models.Word.name):
+        if onwer_id==user.username:
+            flag=0
+            for i in list1:
+                if i==name:
+                    flag=1
+            if flag==0:
+                list1.append(name)
+    if len(list1)==0:
+        return 0
+    else:
+        return list1
+
+
 def show_words(name:str,user: schemas.User,db: Session):
     list1=[]
     for onwer_id,name,word in db.query(models.Word.owner_id,models.Word.name,models.Word.word):
