@@ -17,6 +17,13 @@ def create_user(db: Session, user: schemas.UserCreate):
     db.refresh(db_user)
     return db_user
 
+def create_admin_user(db: Session, user: schemas.UserCreate):
+    db_user = models.User(password=user.password,username=user.username,authority='1')
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
 def modify_user(db: Session, user: schemas.User):
     db_user = db.query(models.User).filter(models.User.username == user.username).first()
     db_user.password = user.password
