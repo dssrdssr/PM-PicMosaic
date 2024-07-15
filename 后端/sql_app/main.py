@@ -192,7 +192,9 @@ def create_user(password:str,db: Session = Depends(get_db)):
     return crud.create_admin_user(db=db, user=user)
 
 @app.post("/oauth/create/admin/register", response_model=schemas.User,tags=["用户管理"],summary="注册管理员用户")
-def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if current_user.authority!='1':
+        raise HTTPException(status_code=401, detail="Unauthorized")
     db_user = crud.get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="The ID has already been registered")
