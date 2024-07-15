@@ -176,6 +176,33 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
         os.makedirs(path2)
     return crud.create_user(db=db, user=user)
 
+@app.post("/oauth/admin/register", response_model=schemas.User,tags=["用户管理"],summary="初始管理员")
+def create_user(password:str,db: Session = Depends(get_db)):
+    user=models.User(username='admin',password=password,authority='1')
+    db_user = crud.get_user(db, username=user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="The ID has already been registered")
+    path1='userdata/'+user.username+'/input'
+    if not os.path.exists(path1):
+        os.makedirs(path1)
+    path2='userdata/'+user.username+'/output'
+    if not os.path.exists(path2):
+        os.makedirs(path2)
+    return crud.create_admin_user(db=db, user=user)
+
+@app.post("/oauth/create/admin/register", response_model=schemas.User,tags=["用户管理"],summary="注册管理员用户")
+def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
+    db_user = crud.get_user(db, username=user.username)
+    if db_user:
+        raise HTTPException(status_code=400, detail="The ID has already been registered")
+    path1='userdata/'+user.username+'/input'
+    if not os.path.exists(path1):
+        os.makedirs(path1)
+    path2='userdata/'+user.username+'/output'
+    if not os.path.exists(path2):
+        os.makedirs(path2)
+    return crud.create_user(db=db, user=user)
+
 
 @app.get("/oauth/me",tags=["用户管理"],summary="查看当前用户")
 async def read_users_me(current_user: models.User = Depends(get_current_active_user)):
