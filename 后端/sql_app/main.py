@@ -204,7 +204,7 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db),current_
     path2='userdata/'+user.username+'/output'
     if not os.path.exists(path2):
         os.makedirs(path2)
-    return crud.create_user(db=db, user=user)
+    return crud.create_admin_user(db=db, user=user)
 
 
 @app.get("/oauth/me",tags=["用户管理"],summary="查看当前用户")
