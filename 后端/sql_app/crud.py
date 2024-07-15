@@ -45,6 +45,9 @@ def drop_user(db:Session,username:str):
 def get_user_pic(db: Session,username: str,picname:str):
     pic=db.query(models.Pic).filter(models.Pic.owner_id == username).filter(models.Pic.picname == picname ).first()
     return pic
+def get_user_last_pic(db: Session,username: str):
+    pic=db.query(models.Pic).filter(models.Pic.owner_id == username).order_by(models.Pic.picid.desc()).first()
+    return pic
 
 def show_pics(user: schemas.User,db: Session):
     list1=[]
