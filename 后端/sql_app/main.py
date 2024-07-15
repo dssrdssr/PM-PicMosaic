@@ -28,6 +28,7 @@ from .database import SessionLocal, engine
 import base64
 from PIL import Image
 from fastapi.middleware.cors import CORSMiddleware
+import zipfile
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -260,7 +261,11 @@ async def delete_user(username:str,db:Session=Depends(get_db),current_user: mode
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
         
-
+@app.get('/oauth/upload_number/',tags=["文件管理"],summary="获取用户已上传图片数量")
+async def download_file(db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    num = crud.get_user_last_pic(db,current_user.username)
+    return {"The_last_pic":num}
+   
 @app.post("/oauth/upload/{username}/",tags=["文件管理"],summary="用户上传")
 async def create_upload_file(files: List[UploadFile], db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     flag=0
@@ -316,6 +321,20 @@ async def download_file(picname:str,db:Session=Depends(get_db),current_user: mod
         #按文件保存路径找到并发送文件
         return FileResponse(path=path.joinpath(db_file.picname),filename=db_file.picname)
     raise HTTPException(status_code=401, detail="No file to download")
+
+@app.post('/oauth/mult_download/{username}/',tags=["文件管理"],summary="批量下载打码文件")
+async def mult_download(piclist:list[str],db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    path=pathlib.Path('userdata/'+current_user.username+'/output')#文件保存的根目录
+    if not path.exists():
+        raise HTTPException(status_code=401, detail="No file to download")
+    zip_file_name = "pictures.zip"
+    with zipfile.ZipFile(zip_file_name, mode='w', compression=zipfile.ZIP_DEFLATED) as zf:
+        for picname in piclist:
+            db_file=crud.get_user_pic(db=db,username=current_user.username,picname=picname)#查找文件记录
+            if db_file:
+                zf.write(path.joinpath(picname), arcname=picname)
+                #按文件保存路径找到并发送文件
+    return FileResponse(path=pathlib.Path(zip_file_name),filename=zip_file_name)
 
 
 @app.get('/oauth/showall/{username}/',tags=["文件管理"],summary="显示所有图片")
@@ -382,6 +401,15 @@ async def delete_file(picname:str,db:Session=Depends(get_db),current_user: model
         '''
     return crud.drop_file(db=db,pic=db_file)
 
+@app.post("/mult_image/base64/words/free",tags=["信息识别"],summary="批量进行图片处理")
+async def mult_execute(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,piclist:list[str] = [],name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    for picname in piclist:
+        result = image_word_base64(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
+        list1 = []
+        list2 = []
+        list1.append(result['outfolder'])
+        list2.append(result['sucess'])
+    return {"outfolder": list1,"sucess":list2}
 
 #name是敏感词语库的名称
 @app.post("/image/base64/words/free",tags=["信息识别"],summary="免费敏感词库信息识别")
