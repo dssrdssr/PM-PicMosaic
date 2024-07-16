@@ -221,7 +221,9 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),cu
 
 
 @app.put("/oauth/change/{username}", response_model=schemas.User,tags=["用户管理"],summary="修改密码")
-def update_users(newpassword:str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+def update_users(username:str,newpassword:str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if current_user.authority!='1' and username!=current_user.username:
+        raise HTTPException(status_code=401, detail=" Unauthorized")
     newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
     users = crud.modify_user(db, newuser)
     return users
