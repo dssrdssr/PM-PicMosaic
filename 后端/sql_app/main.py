@@ -536,7 +536,7 @@ async def image_word_base64_baidu(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:
 
 #临时敏感词
 @app.post("/image/base64/word/free",tags=["信息识别"],summary="免费临时敏感词信息识别")
-async def image_word_base64(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64_temp(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if picname=="":
         raise HTTPException(status_code=400, detail="No this file")
     word_list=[name]
@@ -563,7 +563,7 @@ async def image_word_base64(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 
 
 
 @app.post("/image/base64/word/baidu",tags=["信息识别"],summary="收费临时敏感词信息识别")
-async def image_word_base64_baidu(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def image_word_base64_baidu_temp(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,picname: str="",name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if picname=="":
         raise HTTPException(status_code=400, detail="No this file")
     word_list=[name]
