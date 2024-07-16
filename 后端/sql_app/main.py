@@ -226,7 +226,10 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),cu
 def update_users(username:str,newpassword:str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority!='1' and username!=current_user.username:
         raise HTTPException(status_code=401, detail=" Unauthorized")
-    newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
+    if username==current_user.username:
+        newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
+    else :
+        newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority='0',pics=current_user.pics)
     users = crud.modify_user(db, newuser)
     return users
 
