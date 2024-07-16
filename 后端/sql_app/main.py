@@ -432,16 +432,42 @@ async def delete_file(picname:str,db:Session=Depends(get_db),current_user: model
     return crud.drop_file(db=db,pic=db_file)
 
 @app.post("/mult_image/base64/words/free",tags=["信息识别"],summary="批量进行图片处理")
-async def mult_execute(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,piclist:list[str] = [],name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+async def mult_execute(method:int,x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,piclist:list[str] = [],name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if piclist==[]:
         HTTPException(status_code=401, detail="No file to process")
-    for picname in piclist:
-        result =await image_word_base64(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
-        list1 = []
-        list2 = []
-        list1.append(result['outfolder'])
-        list2.append(result['sucess'])
-    return {"outfolder": list1,"sucess":list2}
+    if method == 1:#免费敏感词库
+        for picname in piclist:
+            result =await image_word_base64(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
+            list1 = []
+            list2 = []
+            list1.append(result['outfolder'])
+            list2.append(result['sucess'])
+        return {"outfolder": list1,"sucess":list2}
+    if method == 2:#付费敏感词库
+        for picname in piclist:
+            result =await image_word_base64_baidu(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
+            list1 = []
+            list2 = []
+            list1.append(result['outfolder'])
+            list2.append(result['sucess'])
+        return {"outfolder": list1,"sucess":list2}
+    if method == 3:#免费临时敏感词库
+        for picname in piclist:
+            result =await image_word_base64_temp(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
+            list1 = []
+            list2 = []
+            list1.append(result['outfolder'])
+            list2.append(result['sucess'])
+        return {"outfolder": list1,"sucess":list2}
+    if method == 4:#付费临时敏感词库
+        for picname in piclist:
+            result =await image_word_base64_baidu_temp(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
+            list1 = []
+            list2 = []
+            list1.append(result['outfolder'])
+            list2.append(result['sucess'])
+        return {"outfolder": list1,"sucess":list2}
+
 
 #name是敏感词语库的名称
 @app.post("/image/base64/words/free",tags=["信息识别"],summary="免费敏感词库信息识别")
