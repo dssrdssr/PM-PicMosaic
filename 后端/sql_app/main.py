@@ -243,9 +243,9 @@ def update_users(username:str,newpassword:str, db: Session = Depends(get_db),cur
     if current_user.authority!='1' and username!=current_user.username:
         raise HTTPException(status_code=401, detail=" Unauthorized")
     if username==current_user.username:
-        newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
+        newuser=models.User(username=username,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
     else :
-        newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority='0',pics=current_user.pics)
+        newuser=models.User(username=username,password=newpassword,is_active=current_user.is_active,authority='0',pics=current_user.pics)
     sale=newuser.password[:4]
     md_sale=hashlib.md5((newuser.password+sale).encode())
     newuser.password=md_sale.hexdigest()
