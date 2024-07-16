@@ -21,6 +21,8 @@ class MosaData(BaseModel):
 #对单张图片处理
 def mosa(name:str,location_set:list[list[int]],style:int = 1,mosasize:int = 30):
     lena = cv2.imread(name,cv2.IMREAD_COLOR)
+    if location_set==[]:
+        return lena
     if lena is not None:
         location_set[0]
         row, colume,color=lena.shape
