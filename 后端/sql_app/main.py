@@ -405,6 +405,8 @@ async def delete_file(picname:str,db:Session=Depends(get_db),current_user: model
 
 @app.post("/mult_image/base64/words/free",tags=["信息识别"],summary="批量进行图片处理")
 async def mult_execute(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mosasize:int = 30,piclist:list[str] = [],name:str="",db:Session=Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+    if piclist==[]:
+        HTTPException(status_code=401, detail="No file to process")
     for picname in piclist:
         result = image_word_base64(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
         list1 = []
