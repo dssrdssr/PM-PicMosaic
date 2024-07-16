@@ -231,9 +231,11 @@ async def read_users_me(current_user: models.User = Depends(get_current_active_u
 
 
 @app.get("/oauth/", response_model=list[schemas.User],tags=["用户管理"],summary="查看用户列表")
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
+def read_users(skip: int = 0, limit: int = -1, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority=='0':
         raise HTTPException(status_code=401, detail=" Unauthorized")
+    if limit==-1:
+        limit=crud.get_user_num(db)
     users = crud.get_users(db, skip=skip, limit=limit)
     return users
 
