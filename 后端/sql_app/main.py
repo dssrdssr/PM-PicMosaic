@@ -69,11 +69,11 @@ def dict_crop(result_dict,x1, y1):
     return result_dict
 # crop_image('ocr1.png',10,10,200,200)
     # 打开图片
-    img = Image.open(image_path)
+    #img = Image.open(image_path)
     # 裁剪图片
-    cropped_img = img.crop((x, y, x + width, y + height))
+    #cropped_img = img.crop((x, y, x + width, y + height))
     # 显示裁剪后的图片（可选）
-    cropped_img.show()
+    #cropped_img.show()
     # 保存裁剪后的图片
     #cropped_img.save("cropped_image.jpg")
 
@@ -410,7 +410,7 @@ async def mult_execute(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 1,mos
     if piclist==[]:
         HTTPException(status_code=401, detail="No file to process")
     for picname in piclist:
-        result = image_word_base64(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
+        result =await image_word_base64(x1,y1,x2,y2,style,mosasize,picname,name,db,current_user)
         list1 = []
         list2 = []
         list1.append(result['outfolder'])
