@@ -9,7 +9,6 @@ import asyncio
 # def get_picture_words(url, image_url):
 #     data = {"file": image_url}
 #     response = requests.post(url, headers={"Content-Type": "application/json"}, data=json.dumps(data))
-#     #print(url)
 #     response_dict = response.json()
 #     return response_dict
 async def get_picture_words_async(url, image_url):
@@ -29,7 +28,6 @@ async def get_picture_words_async(url, image_url):
 #     }
 #     response = requests.request("POST", url, headers=headers, data=payload)
 #     response_dict = response.json()
-#     #print(response.text)
 #     return response_dict
 async def url_baidu_async(image_url):
     url = "https://aip.baidubce.com/rest/2.0/ocr/v1/general?access_token=24.1de6e7d9a2dfe2e6325ac2ecec1c79e1.2592000.1722876645.282335-91530730"
@@ -54,7 +52,6 @@ async def url_baidu_async(image_url):
 #     }
 #     response = requests.request("POST", url, headers=headers, data=payload)
 #     response_dict = response.json()
-#     # print(response.text)
 #     return response_dict
 async def base64_baidu_async(image_base64):
     url = "https://aip.baidubce.com/rest/2.0/ocr/v1/general?access_token=24.1de6e7d9a2dfe2e6325ac2ecec1c79e1.2592000.1722876645.282335-91530730"
@@ -94,4 +91,3 @@ if __name__ == '__main__':
     image_url = "http://dl2.iteye.com/upload/attachment/0129/4482/19f369de-84a5-3813-b220-86a27b950837.png"
     loop = asyncio.get_event_loop()
     result_dict=loop.run_until_complete(picture_ocr_async(image_url))
-    print(result_dict)
