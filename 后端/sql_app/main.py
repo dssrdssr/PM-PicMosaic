@@ -350,7 +350,6 @@ async def download_file(db:Session=Depends(get_db),current_user: models.User = D
     if not path2.exists():
         raise HTTPException(status_code=401, detail="No file to download")
     list1=[]
-    list2=[]
     db_file=crud.show_pics(db=db,user=current_user)#查找文件记录
     if db_file:
         i = 0
@@ -359,11 +358,11 @@ async def download_file(db:Session=Depends(get_db),current_user: models.User = D
             list1.append(filetoimageurl(pathlib.Path('userdata/'+current_user.username+'/input/'+filename)))
             pathtemp=pathlib.Path('userdata/'+current_user.username+'/output/'+filename)
             if not pathtemp.exists():
-                list2.append(filetoimageurl(pathlib.Path('static/1.png')))
+                list1.append(filetoimageurl(pathlib.Path('static/1.png')))
             else:
-                list2.append(filetoimageurl(pathlib.Path('userdata/'+current_user.username+'/output/'+filename)))
+                list1.append(filetoimageurl(pathlib.Path('userdata/'+current_user.username+'/output/'+filename)))
             i=i+1
-        return {"input":list1,"output":list2}
+        return list1
     raise HTTPException(status_code=401, detail="No file to show")
 
 
