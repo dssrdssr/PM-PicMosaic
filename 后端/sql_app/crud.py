@@ -9,6 +9,12 @@ def get_user(db: Session,username: str):
 def get_users(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.User).offset(skip).limit(limit).all()
 
+def get_user_num(db: Session):
+    num=0
+    for username in db.query(models.User.username):
+        num=num+1
+    return num
+
 
 def create_user(db: Session, user: schemas.UserCreate):
     db_user = models.User(password=user.password,username=user.username)
