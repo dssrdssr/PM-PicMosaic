@@ -20,7 +20,6 @@ async def get_sensitive_words_async( text):
     async with aiohttp.ClientSession() as session:
         async with session.get(url, params=params) as response:
             response_text = await response.text()
-            print(response_text)
             response_dict = json.loads(response_text)
             return response_dict
 # 百度敏感词url
@@ -40,7 +39,6 @@ async def get_baidu_sensitive_words_async( text):
 #用百度url的主函数
 async def sensitive_ai_baidu_async(text):
     response_dict = await get_baidu_sensitive_words_async( text)
-    print(response_dict)
     if response_dict['conclusion'] == "合规":
         result_dict = dict(response_dict=response_dict, positions="no", positions_dict="no")
         return result_dict
@@ -143,4 +141,3 @@ if __name__ == '__main__':
     str='敏感词检测pdf，武力统一台湾，常念法轮大法好，我的银行卡号是1342213，我的身份证号是52314123'
     loop = asyncio.get_event_loop()
     result_dict=loop.run_until_complete(sensitive_ai_async(str))
-    print(result_dict)
