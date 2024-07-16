@@ -16,11 +16,9 @@ async def use_image_url_async(image_url):
         len_words_result = len_words_result + 1
         text = words_result[i]['words']  # 对每个成员进行操作
         chars = words_result[i]['chars']
-        print("待检测语句", text)
         sensitive_dict = await sensitive_async.sensitive_ai_async(text)
         positions = sensitive_dict['positions']
         positions_dict = sensitive_dict['positions_dict']
-        print("所有敏感词位置", positions)
         one_line_all_char_position = []
         if positions != 'no':
             for i in positions:
@@ -28,25 +26,19 @@ async def use_image_url_async(image_url):
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
                     result_location = [chars[i] for i in positions_characters]
-                    # print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
                 else:
                     characters = []
                     result_location = []
-                    print("词组“{}”对应的元素：空列表".format(characters))
                 characters_result_location = dict(characters=characters, result_location=result_location)
                 one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions, one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    #print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,
                        all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 # url 不用百度的敏感词 有自选词  *************
 async def use_image_url_word_async(image_url,word_list):
     text_dict = await picture_async.url_baidu_async(image_url)
-    print(text_dict)
     words_result = text_dict['words_result']  # words_result
     words_result_num = text_dict['words_result_num']  # words_result_num
     log_id = text_dict['log_id']  # log_id
@@ -57,7 +49,7 @@ async def use_image_url_word_async(image_url,word_list):
         len_words_result = len_words_result + 1
         text = words_result[i]['words']  # 对每个成员进行操作
         chars = words_result[i]['chars']
-        print("待检测语句", text)
+
         sensitive_dict = await sensitive_async.sensitive_ai_baidu_async(text)
         positions = sensitive_dict['positions']  # 从此开始改变，直到合并字典
         positions_dict_sensitive = sensitive_dict['positions_dict']
@@ -69,7 +61,6 @@ async def use_image_url_word_async(image_url,word_list):
             positions = list(set(positions))  # 去除重复项
         elif word_positions:
             positions = word_positions
-        print("所有敏感词位置", positions)
         one_line_all_char_position = []
         if positions != 'no':
             positions_dict = defaultdict(list)
@@ -78,28 +69,22 @@ async def use_image_url_word_async(image_url,word_list):
                     positions_dict[key].append(value)
             positions_dict = dict(positions_dict)  # 合并字典
             positions_dict = {key: value[0] for key, value in positions_dict.items()}
-        # print("所有敏感词位置", positions)
         # one_line_all_char_position = []
         # if positions != 'no':
             for i in positions:
                 all_char_location.append(chars[int(i)])
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
-                    result_location = [chars[i] for i in positions_characters]
-                    # print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
+                    result_location = [chars[i] for i in positions_characters]                
                 else:
                     characters = []
                     result_location = []
-                    print("词组“{}”对应的元素：空列表".format(characters))
                 characters_result_location = dict(characters=characters, result_location=result_location)
                 one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions, one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    #print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,
                        all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 # base64 不用百度的敏感词
 async def use_image_base64_async(image_base64):
@@ -114,11 +99,9 @@ async def use_image_base64_async(image_base64):
         len_words_result=len_words_result+1
         text=words_result[i]['words']  # 对每个成员进行操作
         chars=words_result[i]['chars']
-        print("待检测语句",text)
         sensitive_dict = await sensitive_async.sensitive_ai_async(text)
         positions=sensitive_dict['positions']
         positions_dict=sensitive_dict['positions_dict']
-        print("所有敏感词位置",positions)
         one_line_all_char_position=[]
         if positions!='no':
             for i in positions:
@@ -126,27 +109,20 @@ async def use_image_base64_async(image_base64):
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
                     result_location = [chars[i] for i in positions_characters]
-                    #print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
                 else:
                     characters=[]
                     result_location=[]
-                    print("词组“{}”对应的元素：空列表".format(characters))
                 characters_result_location = dict(characters=characters,result_location=result_location)
                 one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions,one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    #print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 # base64 不用百度的敏感词 有自选词  *************
 async def use_image_base64_word_async(image_base64,word_list):
     text_dict=await  picture_async.base64_baidu_async(image_base64)
-    print(text_dict)
     if text_dict['words_result'] == []:
         result_dict = dict(len_words_result=-1, all_line_position=-1, all_char_location=-1)
-        print(result_dict)
         return result_dict
     words_result = text_dict['words_result']  # words_result
     words_result_num = text_dict['words_result_num']  # words_result_num
@@ -158,10 +134,8 @@ async def use_image_base64_word_async(image_base64,word_list):
         len_words_result=len_words_result+1
         text=words_result[i]['words']  # 对每个成员进行操作
         chars=words_result[i]['chars']
-        print("待检测语句",text)
         sensitive_dict = await sensitive_async.sensitive_ai_async(text)
         positions_all_line_re, positions_dict_sensitive_all_line_re = user_word.find_re([], [], text)
-        print(sensitive_dict)
         if sensitive_dict['response_dict']['msg']=="文本内没有敏感词":
             positions = positions_all_line_re
             positions_dict_sensitive = positions_dict_sensitive_all_line_re
@@ -181,7 +155,6 @@ async def use_image_base64_word_async(image_base64,word_list):
             positions = list(set(positions))# 去除重复项
         elif word_positions:
             positions=word_positions
-        print("所有敏感词位置", positions)
         one_line_all_char_position = []
         if positions!='no':
             positions_dict = defaultdict(list)
@@ -190,7 +163,7 @@ async def use_image_base64_word_async(image_base64,word_list):
                     positions_dict[key].append(value)
             positions_dict=dict(positions_dict) # 合并字典
             positions_dict = {key: value[0] for key, value in positions_dict.items()}
-        # print("所有敏感词位置",positions)
+
         # one_line_all_char_position=[]
         # if positions!='no':
             for i in positions:
@@ -198,21 +171,14 @@ async def use_image_base64_word_async(image_base64,word_list):
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
                     result_location = [chars[i] for i in positions_characters]
-                    #print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
                     characters_result_location = dict(characters=characters, result_location=result_location)
                     one_line_all_char_position.append(characters_result_location)
                 else:
                     characters=[ ]
                     result_location=[]
-                    print("词组“{}”对应的元素：空列表".format(characters))
-                # characters_result_location = dict(characters=characters,result_location=result_location)
-                # one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions,one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    #print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 
 async def use_image_base64_baidu_async(image_base64):
@@ -227,11 +193,9 @@ async def use_image_base64_baidu_async(image_base64):
         len_words_result=len_words_result+1
         text=words_result[i]['words']  # 对每个成员进行操作
         chars=words_result[i]['chars']
-        print("待检测语句",text)
         sensitive_dict = await sensitive_async.sensitive_ai_async(text)
         positions=sensitive_dict['positions']
         positions_dict=sensitive_dict['positions_dict']
-        print("所有敏感词位置",positions)
         one_line_all_char_position=[]
         if positions!='no':
             for i in positions:
@@ -239,19 +203,14 @@ async def use_image_base64_baidu_async(image_base64):
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
                     result_location = [chars[i] for i in positions_characters]
-                    #print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
                 else:
                     characters=[]
                     result_location=[]
-                    print("词组“{}”对应的元素：空列表".format(characters))
                 characters_result_location = dict(characters=characters,result_location=result_location)
                 one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions,one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    #print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 
 # 用百度url的主函数,废弃废弃废弃
@@ -267,7 +226,6 @@ async def use_image_base64_word_baidu_async(image_base64,word_list):
         len_words_result=len_words_result+1
         text=words_result[i]['words']  # 对每个成员进行操作
         chars=words_result[i]['chars']
-        print("待检测语句",text)
         if(i>0):                               # 调用百度的修改，有三行
             time.sleep(1)
         sensitive_dict = await sensitive_async.sensitive_ai_baidu_async(text)
@@ -281,7 +239,6 @@ async def use_image_base64_word_baidu_async(image_base64,word_list):
             positions = list(set(positions))# 去除重复项
         elif word_positions:
             positions=word_positions
-        print("所有敏感词位置", positions)
         one_line_all_char_position = []
         if positions!='no':
             positions_dict = defaultdict(list)
@@ -290,7 +247,6 @@ async def use_image_base64_word_baidu_async(image_base64,word_list):
                     positions_dict[key].append(value)
             positions_dict=dict(positions_dict) # 合并字典
             positions_dict = {key: value[0] for key, value in positions_dict.items()}
-        # print("所有敏感词位置",positions)
         # one_line_all_char_position=[]
         # if positions!='no':
             for i in positions:
@@ -298,27 +254,20 @@ async def use_image_base64_word_baidu_async(image_base64,word_list):
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
                     result_location = [chars[i] for i in positions_characters]
-                    #print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
                 else:
                     characters=[]
                     result_location=[]
-                    print("词组“{}”对应的元素：空列表".format(characters))
                 characters_result_location = dict(characters=characters,result_location=result_location)
                 one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions,one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    #print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 # 尝试只调用一次百度敏感词的主函数  base64  *********
 async def use_image_base64_word_baidu_async_one(image_base64,word_list):
     text_dict=await  picture_async.base64_baidu_async(image_base64)
-    print(text_dict)
     if text_dict['words_result']==[]:
         result_dict = dict(len_words_result=-1, all_line_position=-1, all_char_location=-1)
-        print(result_dict)
         return result_dict
     words_result = text_dict['words_result']  # words_result
     words_result_num = text_dict['words_result_num']  # words_result_num
@@ -336,7 +285,6 @@ async def use_image_base64_word_baidu_async_one(image_base64,word_list):
         all_text=all_text+text
     sensitive_dict = await sensitive_async.sensitive_ai_baidu_async(all_text)
     positions_all_line_re,positions_dict_sensitive_all_line_re=user_word.find_re([],[],all_text)
-    print(sensitive_dict)
     positions_new=[]
     positions_dict_new=[]
     if sensitive_dict['response_dict']['conclusion']=='合规':
@@ -361,7 +309,6 @@ async def use_image_base64_word_baidu_async_one(image_base64,word_list):
         len_words_result=len_words_result+1
         text=words_result[i]['words']  # 对每个成员进行操作
         chars=words_result[i]['chars']
-        print("待检测语句",text)
         # if(i>1):                               # 调用百度的修改，有三行
         #     time.sleep(1)
         # sensitive_dict = await sensitive_async.sensitive_ai_baidu_async(text)
@@ -375,7 +322,6 @@ async def use_image_base64_word_baidu_async_one(image_base64,word_list):
             positions = list(set(positions))# 去除重复项
         elif word_positions:
             positions=word_positions
-        print("所有敏感词位置", positions)
         one_line_all_char_position = []
         if positions!='no'and positions!=[]:
             positions_dict = defaultdict(list)
@@ -384,7 +330,6 @@ async def use_image_base64_word_baidu_async_one(image_base64,word_list):
                     positions_dict[key].append(value)
             positions_dict=dict(positions_dict) # 合并字典
             positions_dict = {key: value[0] for key, value in positions_dict.items()}
-        # print("所有敏感词位置",positions)
         # one_line_all_char_position=[]
         # if positions!='no':
             for i in positions:
@@ -392,19 +337,14 @@ async def use_image_base64_word_baidu_async_one(image_base64,word_list):
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
                     result_location = [chars[i] for i in positions_characters]
-                    #print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
                 else:
                     characters=[]
                     result_location=[]
-                    print("词组“{}”对应的元素：空列表".format(characters))
                 characters_result_location = dict(characters=characters,result_location=result_location)
                 one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions,one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    #print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 # 尝试只调用一次百度敏感词的主函数  url图片  ************
 async def use_image_url_word_baidu_async_one(image_url,word_list):
@@ -432,7 +372,6 @@ async def use_image_url_word_baidu_async_one(image_url,word_list):
         len_words_result = len_words_result + 1
         text = words_result[i]['words']  # 对每个成员进行操作
         chars = words_result[i]['chars']
-        print("待检测语句", text)
         # if(i>1):                               # 调用百度的修改，有三行
         #     time.sleep(1)
         # sensitive_dict = await sensitive_async.sensitive_ai_baidu_async(text)
@@ -446,7 +385,6 @@ async def use_image_url_word_baidu_async_one(image_url,word_list):
             positions = list(set(positions))  # 去除重复项
         elif word_positions:
             positions = word_positions
-        print("所有敏感词位置", positions)
         one_line_all_char_position = []
         if positions != 'no' and positions != []:
             positions_dict = defaultdict(list)
@@ -455,7 +393,6 @@ async def use_image_url_word_baidu_async_one(image_url,word_list):
                     positions_dict[key].append(value)
             positions_dict = dict(positions_dict)  # 合并字典
             positions_dict = {key: value[0] for key, value in positions_dict.items()}
-            # print("所有敏感词位置",positions)
             # one_line_all_char_position=[]
             # if positions!='no':
             for i in positions:
@@ -463,20 +400,15 @@ async def use_image_url_word_baidu_async_one(image_url,word_list):
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
                     result_location = [chars[i] for i in positions_characters]
-                    # print(positions)
-                    print("词组“{}”对应的元素：{}".format(characters, result_location))
                 else:
                     characters = []
                     result_location = []
-                    print("词组“{}”对应的元素：空列表".format(characters))
                 characters_result_location = dict(characters=characters, result_location=result_location)
                 one_line_all_char_position.append(characters_result_location)
         one_line_position = dict(text=text, positions=positions, one_line_all_char_position=one_line_all_char_position)
         all_line_position.append(one_line_position)
-    # print(all_char_location)
     result_dict = dict(len_words_result=len_words_result, all_line_position=all_line_position,
                        all_char_location=all_char_location)
-    print(result_dict)
     return result_dict
 
 if __name__ == '__main__':
@@ -492,4 +424,3 @@ if __name__ == '__main__':
     wordlist = ["好", "dog"]
     result_dict = loop.run_until_complete(use_image_base64_word_baidu_async_one(base64, wordlist))
     # result_dict = loop.run_until_complete(use_image_base64_word_baidu_async_one(base64,wordlist))
-    print(result_dict)
