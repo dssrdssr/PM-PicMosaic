@@ -442,11 +442,12 @@ async def image_word_base64(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 
     result_dict = dict_crop(result_dict, x1, y1)
     location = []
     temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
+    if result_dict['all_char_location']!=-1:
+        for i in result_dict['all_char_location']:
+            temp_list=[]
+            for j in i['location'].values():
+                temp_list.append(j)
+            location.append(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
@@ -473,11 +474,12 @@ async def image_word_base64_baidu(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:
     result_dict=dict_crop(result_dict,x1,y1)
     location = []
     temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
+    if result_dict['all_char_location']!=-1:
+        for i in result_dict['all_char_location']:
+            temp_list=[]
+            for j in i['location'].values():
+                temp_list.append(j)
+            location.append(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
@@ -500,11 +502,12 @@ async def image_word_base64(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:int = 
     result_dict=await main_async.use_image_base64_word_async(base64,word_list)
     location = []
     temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
+    if result_dict['all_char_location']!=-1:
+        for i in result_dict['all_char_location']:
+            temp_list=[]
+            for j in i['location'].values():
+                temp_list.append(j)
+            location.append(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
