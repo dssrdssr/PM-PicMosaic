@@ -2,7 +2,6 @@ import re
 
 def find_position(all_words, num_word_of_line):
     res_list=[]
-    print(all_words)
     total_chars = sum(num_word_of_line)  # 获取所有行的字符总数
     # if all_words[-1] > total_chars:  # 检查最后一个位置是否超出总字符数
     #     return "位置超出总字符数"
@@ -17,7 +16,7 @@ def find_position(all_words, num_word_of_line):
                 char_position = chars - (total - item) + 1  # 确定P中文字在该行的第几个
                 if(char_position>0):
                     line_list.append(char_position-1)
-                    print( f"位置{item}来自第{line_number}行的第{char_position}个字符")
+    
         res_list.append(line_list)
         dict(line=i,line_list=line_list)
     return res_list
@@ -50,9 +49,7 @@ def find_word_position_regex(sentence, word_list):
                 positions.append(match.start() + i)
                 position_word.append((match.start() + i))
             # index = match.start() + 1  # 获取词语在句子中的位置（加1是为了转换为从1开始的索引）
-            print(f"词语'{word}'在句子中的位置是{position_word}个字符")
-        if not position_word:
-            print(f"句子中不存在词语'{word}'")
+            
         positions_dict[word] = position_word
     # print(positions)
     # print(positions_dict)
@@ -81,7 +78,7 @@ def find_re(re_list,re_name_list,text):
         result = regex.finditer(text)
         re_pos=[]
         for match in result:
-            print("匹配位置:", match.span())
+          
             start, end = match.span()
             positions.extend(range(start, end))
             re_pos.extend(range(start, end))
@@ -101,5 +98,4 @@ if __name__ == '__main__':
     text="aabb"
     #text="#410325199610012345这是一个身份证号码：410325199610012345，和一个银行卡号：6222021234567890123。"
     positions,positions_dict=find_re([],[],text)
-    print(positions)
-    print(positions_dict)
+  
