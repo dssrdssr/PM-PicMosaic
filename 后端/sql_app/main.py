@@ -60,6 +60,8 @@ def crop_image(image_path, x1, y1, x2, y2):
 
 
 def dict_crop(result_dict,x1, y1):
+    if result_dict['all_line_position']==-1:
+        return result_dict
     for all_line_position in result_dict['all_line_position']:
         for one_line_all_char_position in all_line_position['one_line_all_char_position']:
             if one_line_all_char_position['characters']!=[]and one_line_all_char_position['result_location']!=[]:
@@ -513,7 +515,6 @@ async def image_word_base64_baidu(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:
         raise HTTPException(status_code=400, detail="No this file")
     word_list=[name]
     file=pathlib.Path('userdata/'+current_user.username+'/input/'+picname)
-    base64=path_to_base64_cropping(file,x1,y1,x2,y2)
     if x1==-1 and y1==-1:
         if x2==-1 and y2==-1:
             x1=0
@@ -521,15 +522,17 @@ async def image_word_base64_baidu(x1:int=-1,y1:int=-1,x2:int=-1,y2:int=-1,style:
             img_pillow = Image.open(file)
             x2 = img_pillow.width  # 图片宽度
             y2 = img_pillow.height
+    base64=path_to_base64_cropping(file,x1,y1,x2,y2)
     result_dict=await main_async.use_image_base64_word_baidu_async_one(base64, word_list)
     result_dict=dict_crop(result_dict,x1,y1)
     location = []
     temp_list = []
-    for i in result_dict['all_char_location']:
-        temp_list=[]
-        for j in i['location'].values():
-            temp_list.append(j)
-        location.append(temp_list)
+    if result_dict['all_char_location']!=-1:
+        for i in result_dict['all_char_location']:
+            temp_list=[]
+            for j in i['location'].values():
+                temp_list.append(j)
+            location.append(temp_list)
     result = await mosaic_for_multpic([picname],location,style,mosasize,current_user)
     return {"outfolder": result['outfolder'],"sucess":result['sucess']}
 
