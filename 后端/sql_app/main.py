@@ -4,6 +4,8 @@ import pathlib
 import cv2
 import imageio
 import shutil
+import hashlib
+
 
 from scipy import misc
 from PIL import Image
@@ -41,6 +43,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 fastapi_cdn_host.patch_docs(app, favicon_url='/static/hospital.svg')
+
 
 
 def crop_image(image_path, x1, y1, x2, y2):
@@ -160,7 +163,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     dbuser = crud.get_user(db, form_data.username)
     if not dbuser:
         raise HTTPException(status_code=400, detail="Incorrect username")
-    fpwd=form_data.password
+    sale=form_data.password[:4]
+    md_sale=hashlib.md5((form_data.password+sale).encode())
+    fpwd=md_sale.hexdigest()
+    print(fpwd)
+    print(dbuser.password)
     if not fpwd == dbuser.password:
         raise HTTPException(status_code=400, detail="Incorrect password")
     return {"access_token": dbuser.username, "token_type": "bearer","authority":dbuser.authority}
@@ -171,6 +178,9 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     db_user = crud.get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="The ID has already been registered")
+    sale=user.password[:4]
+    md_sale=hashlib.md5((user.password+sale).encode())
+    user.password=md_sale.hexdigest()
     path1='userdata/'+user.username+'/input'
     if not os.path.exists(path1):
         os.makedirs(path1)
@@ -181,6 +191,9 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/oauth/admin/register", response_model=schemas.User,tags=["用户管理"],summary="初始管理员")
 def create_user(password:str,db: Session = Depends(get_db)):
+    sale=password[:4]
+    md_sale=hashlib.md5((password+sale).encode())
+    password=md_sale.hexdigest()
     user=models.User(username='admin',password=password,authority='1')
     db_user = crud.get_user(db, username=user.username)
     if db_user:
@@ -200,6 +213,9 @@ def create_user(user: schemas.UserCreate, db: Session = Depends(get_db),current_
     db_user = crud.get_user(db, username=user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="The ID has already been registered")
+    sale=user.password[:4]
+    md_sale=hashlib.md5((user.password+sale).encode())
+    user.password=md_sale.hexdigest()
     path1='userdata/'+user.username+'/input'
     if not os.path.exists(path1):
         os.makedirs(path1)
@@ -230,6 +246,9 @@ def update_users(username:str,newpassword:str, db: Session = Depends(get_db),cur
         newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority=current_user.authority,pics=current_user.pics)
     else :
         newuser=models.User(username=current_user.username,password=newpassword,is_active=current_user.is_active,authority='0',pics=current_user.pics)
+    sale=newuser.password[:4]
+    md_sale=hashlib.md5((newuser.password+sale).encode())
+    newuser.password=md_sale.hexdigest()
     users = crud.modify_user(db, newuser)
     return users
 
@@ -237,16 +256,16 @@ def update_users(username:str,newpassword:str, db: Session = Depends(get_db),cur
 @app.put("/oauth/update/{username}", response_model=schemas.User,tags=["用户管理"],summary="更新用户")
 def update_users(newuser:schemas.User, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority=='1':
+        sale=newuser.password[:4]
+        md_sale=hashlib.md5((newuser.password+sale).encode())
+        newuser.password=md_sale.hexdigest()
         users = crud.modify_user(db, newuser)
         return users
     else:
         raise HTTPException(status_code=401, detail=" Unauthorized")
 
-
-@app.get("/oauth/show/{username}", response_model=schemas.User,tags=["用户管理"],summary="获取用户")
-
-
 #给管理员查看用户信息的
+@app.get("/oauth/show/{username}", response_model=schemas.User,tags=["用户管理"],summary="获取用户")
 def read_user(username: str, db: Session = Depends(get_db),current_user: models.User = Depends(get_current_active_user)):
     if current_user.authority=='0':
         raise HTTPException(status_code=401, detail=" Unauthorized")
