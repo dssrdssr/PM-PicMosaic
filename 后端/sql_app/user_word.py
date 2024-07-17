@@ -62,15 +62,19 @@ def find_re(re_list,re_name_list,text):
         re_1 = r'([1-9]\d{5}(18|19|20)?\d{2}(0[1-9]|1[0-2])(0[1-9]|[1-2]\d|3[0-1])\d{3}(\d|X|x))'
         re_2 = r'\b\d{12,19}\b'
         re_3 = r'\d{6,6}'
+        re_4= r"\d+" 
         re_list.append(re_1)
         re_list.append(re_2)
         re_list.append(re_3)
+        re_list.append(re_4)
         re_name_1="re身份证号"
         re_name_2 = "re银行卡号"
         re_name_3="re银行卡密码"
+        re_name_4="re数字"
         re_name_list.append(re_name_1)
         re_name_list.append(re_name_2)
         re_name_list.append(re_name_3)
+        re_name_list.append(re_name_4)
     positions = []
     positions_dict={}
     for i in range (len(re_list)):
