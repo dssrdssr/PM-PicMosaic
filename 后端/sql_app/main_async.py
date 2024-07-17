@@ -167,10 +167,11 @@ async def use_image_base64_word_async(image_base64,word_list):
         # one_line_all_char_position=[]
         # if positions!='no':
             for i in positions:
-                all_char_location.append(chars[int(i)])
+                if len(chars)>=int(i):
+                    all_char_location.append(chars[int(i)])
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
-                    result_location = [chars[i] for i in positions_characters]
+                    result_location = [chars[i] for i in positions_characters if i<=len(chars)]
                     characters_result_location = dict(characters=characters, result_location=result_location)
                     one_line_all_char_position.append(characters_result_location)
                 else:
@@ -333,10 +334,11 @@ async def use_image_base64_word_baidu_async_one(image_base64,word_list):
         # one_line_all_char_position=[]
         # if positions!='no':
             for i in positions:
-                all_char_location.append(chars[int(i)])
+                if len(chars)>=int(i):
+                    all_char_location.append(chars[int(i)])
             for characters, positions_characters in positions_dict.items():
                 if positions_characters:
-                    result_location = [chars[i] for i in positions_characters]
+                    result_location = [chars[i] for i in positions_characters if i<=len(chars)]
                 else:
                     characters=[]
                     result_location=[]
